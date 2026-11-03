@@ -1,0 +1,26 @@
+from django.contrib import admin
+from .models import City, Category, Provider, Listing, ListingImage
+
+admin.site.register(City)
+admin.site.register(Category)
+
+
+@admin.register(Provider)
+class ProviderAdmin(admin.ModelAdmin):
+    list_display = ('name', 'phone', 'city', 'category')
+    list_filter = ('city', 'category')
+    search_fields = ('name', 'phone')
+
+
+class ListingImageInline(admin.TabularInline):
+    model = ListingImage
+    extra = 1
+
+
+@admin.register(Listing)
+class ListingAdmin(admin.ModelAdmin):
+    list_display = ('title', 'provider', 'price', 'is_active', 'created_at')
+    list_filter = ('is_active', 'provider__city', 'provider__category')
+    search_fields = ('title', 'provider__name')
+    inlines = [ListingImageInline]
+

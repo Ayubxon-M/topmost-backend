@@ -17,6 +17,10 @@ Qo'qondagi ustalar, do'konlar va kafelar e'lonlari uchun backend API.
 | Android emulyator | `http://10.0.2.2:8000` |
 | iOS simulyator | `http://127.0.0.1:8000` |
 | Haqiqiy telefon (bir Wi-Fi'da) | `http://<backend kompyuter IP>:8000`, masalan `http://192.168.1.5:8000` |
+| Haqiqiy server (ilova chiqarilganda) | `https://...` — server tayyor bo'lgach backend dasturchi beradi |
+
+> `BASE_URL` ni kodda bitta joyda saqlang (masalan `--dart-define=BASE_URL=...`),
+> shunda serverga o'tishda faqat shu qiymat almashadi.
 
 > Android'da `http://` (https emas) ishlatish uchun `AndroidManifest.xml` da
 > `android:usesCleartextTraffic="true"` kerak (faqat development'da).
@@ -89,9 +93,12 @@ Bitta maydonga tegishli bo'lmagan xatolar `non_field_errors` yoki `detail` ichid
 | POST | `/api/auth/login/` | hamma | Kirish |
 | POST | `/api/auth/logout/` | token | Chiqish |
 | GET | `/api/auth/me/` | token | Joriy foydalanuvchi |
+| POST | `/api/auth/change-password/` | token | Parolni o'zgartirish |
+| POST | `/api/auth/delete-account/` | token | Akkauntni butunlay o'chirish |
 | GET | `/api/regions/` | hamma | Viloyatlar |
 | GET | `/api/cities/?region=` | hamma | Shahar/tumanlar |
 | GET | `/api/categories/` | hamma | Kategoriyalar |
+| GET | `/api/tariffs/` | hamma | Pullik tariflar va narxlari |
 | GET | `/api/listings/?city=&category=&region=&q=&page=` | hamma | E'lonlar ro'yxati |
 | GET | `/api/listings/{id}/` | hamma | Bitta e'lon |
 | GET | `/api/listings/mine/` | business | Mening e'lonlarim (yashirinlari ham) |
@@ -144,6 +151,27 @@ Token kerak. **200**:
 > Ilova ochilganda tokenni tekshirish uchun qulay. `role == "business"` va
 > `has_business_profile == false` bo'lsa — foydalanuvchini "Biznes profil yaratish" sahifasiga yuboring.
 
+### POST `/api/auth/change-password/`
+Token kerak.
+```json
+{ "old_password": "Topmost2026!", "new_password": "YangiParol2026!" }
+```
+**200** — `login` bilan bir xil javob (`token` + `user`), lekin **token yangi**.
+Eski token ishlamay qoladi (boshqa telefonlardagi kirishlar ham chiqib ketadi),
+shuning uchun javobdagi yangi tokenni darhol saqlang.
+Xatolar (`400`): `{"old_password": ["Joriy parol noto'g'ri."]}` yoki `{"new_password": ["Parol juda qisqa..."]}`.
+
+### POST `/api/auth/delete-account/`
+Token kerak. Tasdiqlash uchun parol so'raladi:
+```json
+{ "password": "Topmost2026!" }
+```
+**204** — akkaunt, biznes profil, barcha e'lonlar va rasmlar **butunlay** o'chadi (qaytarib bo'lmaydi).
+Keyin tokenni qurilmadan o'chirib, mehmon rejimiga o'ting. Parol noto'g'ri — `400` `{"password": ["Parol noto'g'ri."]}`.
+
+> **Muhim:** App Store va Google Play ro'yxatdan o'tish bor ilovalardan "Akkauntni o'chirish"
+> tugmasini talab qiladi. Uni Sozlamalar sahifasiga qo'ying va "Rostdan o'chirilsinmi?" deb so'rang.
+
 ---
 
 ## 4. Ma'lumotnomalar (ochiq)
@@ -162,6 +190,14 @@ Token kerak. **200**:
 ```json
 [ { "id": 1, "name": "Ustalar" } ]
 ```
+
+### GET `/api/tariffs/`
+```json
+[ { "id": 1, "name": "Top", "level": 1, "price": 100000, "duration_days": 30 } ]
+```
+`level: 1` — eng yuqori (e'lonlar ro'yxatda birinchi chiqadi), `level: 2` — undan keyin.
+Obunani hozircha admin qo'lda ulaydi (ilova orqali to'lov yo'q). Ilovada tariflarni ko'rsatib,
+"Ulash uchun admin bilan bog'laning" tugmasini qo'ying.
 
 ---
 
@@ -219,6 +255,7 @@ Token bilan so'ralganda `phone` = `"+998901234567"`, `telegram_username` = `"ali
 
 ### GET `/api/listings/{id}/`
 Bitta e'lon — `results` ichidagi obyekt bilan bir xil. Yashirilgan/bloklangan bo'lsa — `404`.
+Faqat e'lon **egasi** o'zining yashirilgan yoki bloklangan e'lonini ochishi mumkin (tahrirlash sahifasi uchun).
 
 ### GET `/api/listings/mine/` (business)
 Biznesning o'z e'lonlari, **yashirilgan** (`is_active: false`) va **admin bloklagan** (`is_blocked: true`) e'lonlari ham. Sahifalangan.
@@ -284,12 +321,24 @@ Bitta e'longa ko'pi bilan **10 ta** rasm. **201**:
 **201**:
 ```json
 { "id": 1, "name": "Ali usta", "phone": "+998901234567", "telegram_username": "aliusta",
-  "city": 1, "category": 1, "created_at": "2026-11-07T13:02:59.438030+05:00" }
+  "city": 1, "category": 1, "created_at": "2026-11-07T13:02:59.438030+05:00",
+  "subscription": null }
 ```
 Profil allaqachon bor bo'lsa — `400`.
 
 ### GET `/api/business/me/`
 **200** — yuqoridagi obyekt. Profil hali yo'q bo'lsa — `404`.
+
+`subscription` — hozir amalda bo'lgan obuna (faqat o'qish uchun, uni admin ulaydi). Obuna yo'q bo'lsa `null`:
+```json
+"subscription": {
+  "id": 3,
+  "tariff": { "id": 1, "name": "Top", "level": 1, "price": 100000, "duration_days": 30 },
+  "start": "2026-11-01T10:00:00+05:00",
+  "end": "2026-12-01T10:00:00+05:00"
+}
+```
+> Biznes kabinetida ko'rsating: "Tarif: Top, 1-dekabrgacha". `null` bo'lsa — `GET /api/tariffs/` ro'yxatini taklif qiling.
 
 ### PATCH `/api/business/me/`
 Faqat o'zgargan maydonlar: `{ "name": "Ali usta (Qo'qon)" }` → **200**.
@@ -353,4 +402,7 @@ Future<void> uploadImage(int listingId, String filePath, {int order = 0}) async 
 1. Ilova ochiladi → token bor bo'lsa `GET /api/auth/me/` (401 bo'lsa tokenni o'chirib, mehmon rejimi).
 2. Bosh sahifa → `GET /api/regions/`, `/api/cities/`, `/api/categories/` (filtrlar uchun), `GET /api/listings/`.
 3. Ro'yxatdan o'tish → `role: "business"` tanlansa → `POST /api/business/me/` sahifasi.
-4. Biznes kabineti → `GET /api/listings/mine/`, e'lon qo'shish (`POST /api/listings/`) → rasmlar (`POST .../images/`).
+4. Biznes kabineti → `GET /api/business/me/` (obuna holati), `GET /api/listings/mine/`,
+   e'lon qo'shish (`POST /api/listings/`) → rasmlar (`POST .../images/`).
+5. Sozlamalar → parolni o'zgartirish (`POST /api/auth/change-password/`), chiqish (`POST /api/auth/logout/`),
+   akkauntni o'chirish (`POST /api/auth/delete-account/`).

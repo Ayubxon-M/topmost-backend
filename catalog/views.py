@@ -16,12 +16,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription
+from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription, Tariff
 from .permissions import IsBusiness, IsBusinessOrReadOnly
 from .serializers import (
     AuthResponseSerializer, BusinessProfileSerializer, CategorySerializer, ChangePasswordSerializer,
     CitySerializer, DeleteAccountSerializer, ListingImageSerializer, ListingSerializer, LoginSerializer,
-    RegionSerializer, RegisterSerializer, UserSerializer,
+    RegionSerializer, RegisterSerializer, TariffSerializer, UserSerializer,
 )
 from .utils import normalize_text
 
@@ -159,6 +159,14 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """GET /api/categories/"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+
+class TariffViewSet(viewsets.ReadOnlyModelViewSet):
+    """GET /api/tariffs/  — pullik tariflar va narxlari (obuna admin orqali ulanadi)"""
+    queryset = Tariff.objects.all()
+    serializer_class = TariffSerializer
     permission_classes = [AllowAny]
     pagination_class = None
 

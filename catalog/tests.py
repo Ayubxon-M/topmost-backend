@@ -206,6 +206,13 @@ class ReferenceTests(BaseAPITest):
         self.assertEqual(len(self.anon.get("/api/categories/").data), 2)
         self.assertEqual(len(self.anon.get("/api/cities/").data), 2)
 
+    def test_tariffs_public(self):
+        Tariff.objects.create(name="Standart", level=2, price=50000, duration_days=30)
+        Tariff.objects.create(name="Top", level=1, price=100000, duration_days=30)
+        r = self.anon.get("/api/tariffs/")
+        self.assertEqual([t["name"] for t in r.data], ["Top", "Standart"])
+        self.assertEqual(r.data[0]["price"], 100000)
+
     def test_cities_filter_by_region(self):
         other = Region.objects.create(name="Toshkent")
         City.objects.create(region=other, name="Chilonzor")
@@ -249,6 +256,23 @@ class BusinessProfileTests(BaseAPITest):
         self.api.post("/api/business/me/", self.profile_data(), format="json")
         r = self.api.patch("/api/business/me/", {"name": "Yangi nom"}, format="json")
         self.assertEqual(r.data["name"], "Yangi nom")
+
+    def test_subscription_shown_in_profile(self):
+        self.api.post("/api/business/me/", self.profile_data(), format="json")
+        self.assertIsNone(self.api.get("/api/business/me/").data["subscription"])
+        biz = BusinessProfile.objects.get(user=self.user)
+        top = Tariff.objects.create(name="Top", level=1, price=100000, duration_days=30)
+        std = Tariff.objects.create(name="Standart", level=2, price=50000, duration_days=30)
+        Subscription.objects.create(business=biz, tariff=std)
+        Subscription.objects.create(business=biz, tariff=top, start=timezone.now() - timedelta(days=60))  # tugagan
+        sub = self.api.get("/api/business/me/").data["subscription"]
+        self.assertEqual(sub["tariff"]["name"], "Standart")
+        self.assertIn("end", sub)
+
+    def test_subscription_is_read_only(self):
+        self.api.post("/api/business/me/", self.profile_data(), format="json")
+        self.api.patch("/api/business/me/", {"subscription": {"tariff": 1}}, format="json")
+        self.assertFalse(Subscription.objects.exists())
 
     def test_client_cannot_create(self):
         client_user = User.objects.create_user("+998901000009", password=PASSWORD)

@@ -5,9 +5,11 @@ Kelgan ma'lumotni tekshirish (validatsiya) ham shu yerda.
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, User
+from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription, Tariff, User
 from .utils import normalize_phone
 
 
@@ -142,13 +144,36 @@ class BusinessPublicSerializer(serializers.ModelSerializer):
         return data
 
 
+class TariffSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tariff
+        fields = ["id", "name", "level", "price", "duration_days"]
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    tariff = TariffSerializer(read_only=True)
+
+    class Meta:
+        model = Subscription
+        fields = ["id", "tariff", "start", "end"]
+
+
 class BusinessProfileSerializer(serializers.ModelSerializer):
     """Biznes egasi o'z profilini yaratishi/tahrirlashi uchun."""
+    # Hozir amalda bo'lgan eng yuqori darajali obuna (yo'q bo'lsa null). Faqat o'qish uchun.
+    subscription = serializers.SerializerMethodField()
 
     class Meta:
         model = BusinessProfile
-        fields = ["id", "name", "phone", "telegram_username", "city", "category", "created_at"]
+        fields = ["id", "name", "phone", "telegram_username", "city", "category", "created_at", "subscription"]
         read_only_fields = ["created_at"]
+
+    @extend_schema_field(SubscriptionSerializer(allow_null=True))
+    def get_subscription(self, profile):
+        now = timezone.now()
+        sub = (profile.subscriptions.select_related("tariff")
+               .filter(start__lte=now, end__gt=now).order_by("tariff__level", "-end").first())
+        return SubscriptionSerializer(sub).data if sub else None
 
     def validate_phone(self, value):
         phone = normalize_phone(value)

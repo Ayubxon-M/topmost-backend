@@ -8,6 +8,7 @@ router = DefaultRouter()
 router.register("regions", views.RegionViewSet, basename="region")
 router.register("cities", views.CityViewSet, basename="city")
 router.register("categories", views.CategoryViewSet, basename="category")
+router.register("tariffs", views.TariffViewSet, basename="tariff")
 router.register("listings", views.ListingViewSet, basename="listing")
 
 urlpatterns = [

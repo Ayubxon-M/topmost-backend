@@ -77,6 +77,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # DEBUG=False bo'lganda admin panel CSS/JS fayllarini beradi
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -160,6 +162,34 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+# Serverda "python manage.py collectstatic" hamma static fayllarni shu papkaga yig'adi
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    # Serverda: fayl nomiga xesh qo'shadi va siqadi — brauzer eski CSS'ni keshlab qolmaydi.
+    # Development va testlarda oddiy saqlash (collectstatic qilish shart emas).
+    'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage' if DEBUG
+                    else 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
+
+
+# ---------------------------------------------------------------------
+# Xavfsizlik (faqat DEBUG=False, ya'ni serverda ishlaydi)
+# ---------------------------------------------------------------------
+if not DEBUG:
+    # Server nginx/hosting ortida turganda HTTPS ekanini shu sarlavhadan biladi
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # HTTPS=False — vaqtincha, domenga SSL sertifikat ulanmaguncha (http:// orqali sinash uchun)
+    HTTPS = os.environ.get('HTTPS', 'True').lower() in ('1', 'true', 'yes', 'on')
+    SECURE_SSL_REDIRECT = HTTPS           # http:// -> https:// ga yo'naltirish
+    SESSION_COOKIE_SECURE = HTTPS         # admin login cookie faqat HTTPS orqali
+    CSRF_COOKIE_SECURE = HTTPS
+    if HTTPS:
+        # Brauzer 1 yil davomida saytga faqat HTTPS orqali kiradi
+        SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
 
 
 # Email

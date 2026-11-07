@@ -10,6 +10,9 @@ __pycache__/
 db.sqlite3
 media/
 
+# collectstatic natijasi (serverda yaratiladi)
+staticfiles/
+
 # Maxfiy sozlamalar
 .env
 

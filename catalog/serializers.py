@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import User
+from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, User
 from .utils import normalize_phone
 
 
@@ -62,3 +62,83 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Telefon raqami yoki parol noto'g'ri.")
         attrs["user"] = user
         return attrs
+
+
+# ---------- Ma'lumotnomalar ----------
+
+class RegionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Region
+        fields = ["id", "name"]
+
+
+class CitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = City
+        fields = ["id", "name", "region"]
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["id", "name"]
+
+
+# ---------- Biznes profil ----------
+
+class BusinessPublicSerializer(serializers.ModelSerializer):
+    """E'lon ichida ko'rinadigan biznes ma'lumoti. Kontaktlar faqat tizimga kirganlarga."""
+    city = CitySerializer(read_only=True)
+    category = CategorySerializer(read_only=True)
+
+    class Meta:
+        model = BusinessProfile
+        fields = ["id", "name", "phone", "telegram_username", "city", "category"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if not (request and request.user.is_authenticated):
+            data["phone"] = None
+            data["telegram_username"] = None
+        return data
+
+
+class BusinessProfileSerializer(serializers.ModelSerializer):
+    """Biznes egasi o'z profilini yaratishi/tahrirlashi uchun."""
+
+    class Meta:
+        model = BusinessProfile
+        fields = ["id", "name", "phone", "telegram_username", "city", "category", "created_at"]
+        read_only_fields = ["created_at"]
+
+    def validate_phone(self, value):
+        phone = normalize_phone(value)
+        if not phone:
+            raise serializers.ValidationError("Telefon raqami noto'g'ri. Masalan: +998901234567")
+        return phone
+
+    def validate_telegram_username(self, value):
+        return value.strip().lstrip("@")
+
+
+# ---------- E'lonlar ----------
+
+class ListingImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ListingImage
+        fields = ["id", "image", "order"]
+
+
+class ListingSerializer(serializers.ModelSerializer):
+    business = BusinessPublicSerializer(read_only=True)
+    images = ListingImageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Listing
+        fields = [
+            "id", "title", "description", "price", "is_active", "is_blocked",
+            "created_at", "updated_at", "business", "images",
+        ]
+        # is_blocked'ni faqat admin o'zgartiradi
+        read_only_fields = ["is_blocked", "created_at", "updated_at"]

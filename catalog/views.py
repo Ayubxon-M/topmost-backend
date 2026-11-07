@@ -1,13 +1,29 @@
 """
 View — so'rov (request) kelganda nima qilishni hal qiladigan qism.
 """
-from rest_framework import status
+from django.db.models import IntegerField, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
+from .models import BusinessProfile, Category, City, Listing, Region, Subscription
+from .permissions import IsBusiness, IsBusinessOrReadOnly
+from .serializers import (
+    BusinessProfileSerializer, CategorySerializer, CitySerializer, ListingImageSerializer,
+    ListingSerializer, LoginSerializer, RegionSerializer, RegisterSerializer, UserSerializer,
+)
+from .utils import normalize_text
+
+MAX_IMAGES_PER_LISTING = 10
+NO_SUBSCRIPTION_PRIORITY = 99  # obunasi yo'q bizneslar ro'yxat oxirida
 
 
 # ---------- Autentifikatsiya ----------
@@ -51,3 +67,182 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+# ---------- Ma'lumotnomalar (ochiq, faqat o'qish) ----------
+
+def int_param(request, name):
+    """URL'dagi ?name=5 parametrini butun songa aylantiradi. Yo'q bo'lsa None."""
+    value = request.query_params.get(name)
+    if value in (None, ""):
+        return None
+    if not value.isdigit():
+        raise ValidationError({name: "Butun son bo'lishi kerak."})
+    return int(value)
+
+
+class RegionViewSet(viewsets.ReadOnlyModelViewSet):
+    """GET /api/regions/"""
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None  # ro'yxat kichik, sahifalash shart emas
+
+
+class CityViewSet(viewsets.ReadOnlyModelViewSet):
+    """GET /api/cities/  (?region=1 — viloyat bo'yicha filtr)"""
+    serializer_class = CitySerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = City.objects.all()
+        region = int_param(self.request, "region")
+        if region is not None:
+            qs = qs.filter(region_id=region)
+        return qs
+
+
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """GET /api/categories/"""
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+
+# ---------- E'lonlar ----------
+
+class ListingViewSet(viewsets.ModelViewSet):
+    """
+    GET    /api/listings/              — hamma uchun (?city=, ?category=, ?region=, ?q=)
+    GET    /api/listings/{id}/         — hamma uchun
+    GET    /api/listings/mine/         — biznes: o'z e'lonlari (yashirinlari ham)
+    POST   /api/listings/              — biznes: yangi e'lon
+    PATCH  /api/listings/{id}/         — biznes: faqat o'z e'loni
+    DELETE /api/listings/{id}/         — biznes: faqat o'z e'loni
+    POST   /api/listings/{id}/images/  — biznes: rasm yuklash (multipart: image, order)
+    DELETE /api/listings/{id}/images/{image_id}/ — biznes: rasmni o'chirish
+    """
+    serializer_class = ListingSerializer
+    permission_classes = [IsBusinessOrReadOnly]
+
+    def get_queryset(self):
+        qs = Listing.objects.select_related(
+            "business__city", "business__category", "business__user",
+        ).prefetch_related("images")
+
+        if self.action in ("list", "retrieve"):
+            return self.filter_public(qs)
+
+        # Qolgan barcha amallar (tahrirlash, o'chirish, rasm, mine) — faqat o'z e'lonlari.
+        # Begona e'lon bu ro'yxatda yo'q, shuning uchun DRF avtomatik 404 qaytaradi.
+        return qs.filter(business__user=self.request.user)
+
+    def filter_public(self, qs):
+        # 1) Ko'rinmaydiganlarni olib tashlaymiz
+        qs = qs.filter(is_active=True, is_blocked=False, business__user__is_active=True)
+
+        # 2) Filtrlar
+        city = int_param(self.request, "city")
+        if city is not None:
+            qs = qs.filter(business__city_id=city)
+        category = int_param(self.request, "category")
+        if category is not None:
+            qs = qs.filter(business__category_id=category)
+        region = int_param(self.request, "region")
+        if region is not None:
+            qs = qs.filter(business__city__region_id=region)
+
+        # 3) Qidiruv: har bir so'z sarlavha yoki izohda bo'lishi kerak.
+        #    "Do‘kon", "Doʻkon", "do'kon" — hammasi bir xil topiladi.
+        for word in normalize_text(self.request.query_params.get("q", "")).split():
+            qs = qs.filter(search_text__contains=word)
+
+        # 4) Tartib: faol obunasi bor bizneslar avval (1-daraja, keyin 2-daraja),
+        #    qolganlari keyin; har bir guruh ichida yangilari avval.
+        now = timezone.now()
+        best_level = (
+            Subscription.objects
+            .filter(business=OuterRef("business"), start__lte=now, end__gt=now)
+            .order_by("tariff__level")
+            .values("tariff__level")[:1]
+        )
+        qs = qs.annotate(
+            priority=Coalesce(Subquery(best_level), Value(NO_SUBSCRIPTION_PRIORITY), output_field=IntegerField())
+        )
+        return qs.order_by("priority", "-created_at", "-id")
+
+    def perform_create(self, serializer):
+        business = getattr(self.request.user, "business", None)
+        if business is None:
+            raise ValidationError({"detail": "Avval biznes profilingizni yarating: /api/business/me/"})
+        serializer.save(business=business)
+
+    def perform_destroy(self, instance):
+        for img in instance.images.all():
+            img.image.delete(save=False)  # rasm faylini diskdan ham o'chiramiz
+        instance.delete()
+
+    @action(detail=False, methods=["get"], permission_classes=[IsBusiness])
+    def mine(self, request):
+        page = self.paginate_queryset(self.get_queryset())
+        return self.get_paginated_response(self.get_serializer(page, many=True).data)
+
+    @action(detail=True, methods=["post"], url_path="images", parser_classes=[MultiPartParser, FormParser])
+    def upload_image(self, request, pk=None):
+        listing = self.get_object()
+        if listing.images.count() >= MAX_IMAGES_PER_LISTING:
+            raise ValidationError({"image": f"Bitta e'longa ko'pi bilan {MAX_IMAGES_PER_LISTING} ta rasm."})
+        serializer = ListingImageSerializer(data=request.data, context=self.get_serializer_context())
+        serializer.is_valid(raise_exception=True)
+        serializer.save(listing=listing)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>[0-9]+)")
+    def delete_image(self, request, pk=None, image_id=None):
+        listing = self.get_object()
+        image = get_object_or_404(listing.images, pk=image_id)
+        image.image.delete(save=False)
+        image.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ---------- Biznes profil ----------
+
+class MyBusinessView(APIView):
+    """
+    GET   /api/business/me/  — o'z profilini ko'rish
+    POST  /api/business/me/  — profil yaratish (bir marta)
+    PATCH /api/business/me/  — profilni tahrirlash (PUT ham ishlaydi)
+    """
+    permission_classes = [IsBusiness]
+
+    def get_profile(self):
+        profile = BusinessProfile.objects.filter(user=self.request.user).first()
+        if profile is None:
+            raise NotFound("Biznes profil hali yaratilmagan.")
+        return profile
+
+    def get(self, request):
+        return Response(BusinessProfileSerializer(self.get_profile()).data)
+
+    def post(self, request):
+        if BusinessProfile.objects.filter(user=request.user).exists():
+            raise ValidationError({"detail": "Profil allaqachon mavjud. Tahrirlash uchun PATCH ishlating."})
+        serializer = BusinessProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def put(self, request):
+        return self._update(request, partial=False)
+
+    def patch(self, request):
+        return self._update(request, partial=True)
+
+    def _update(self, request, partial):
+        serializer = BusinessProfileSerializer(self.get_profile(), data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)

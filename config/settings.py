@@ -232,3 +232,7 @@ SPECTACULAR_SETTINGS = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# E'lon rasmlarini (media/) Django o'zi bersinmi? Development'da doim ha.
+# Serverda nginx bo'lsa False (nginx tezroq beradi), nginx bo'lmasa True.
+SERVE_MEDIA = DEBUG or os.environ.get('SERVE_MEDIA', 'True').lower() in ('1', 'true', 'yes', 'on')

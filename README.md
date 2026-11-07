@@ -58,3 +58,7 @@ catalog/
 
 - Production sozlamalari: `SECRET_KEY` va `DEBUG` ni `.env` ga olib chiqish, `ALLOWED_HOSTS`, CORS, serverga deploy
 - Avtomatik testlar
+
+## Serverga o'rnatish
+
+Ofis serveriga joylash bo'yicha qadamma-qadam qo'llanma: [DEPLOY.md](DEPLOY.md)

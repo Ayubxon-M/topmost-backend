@@ -5,6 +5,7 @@ Testlar alohida, vaqtinchalik bazada ishlaydi — sizning db.sqlite3 ga tegmaydi
 Har bir test_... funksiyasi bitta qoidani tekshiradi. Biror narsa buzilsa,
 qaysi test "FAIL" bo'lganiga qarab muammoni topasiz.
 """
+import os
 import shutil
 import tempfile
 from datetime import timedelta
@@ -17,7 +18,7 @@ from django.utils import timezone
 from PIL import Image
 from rest_framework.test import APIClient
 
-from .models import BusinessProfile, Category, City, Listing, Region, Subscription, Tariff, User
+from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription, Tariff, User
 from .utils import normalize_phone, normalize_text
 
 PASSWORD = "Topmost2026!"
@@ -53,7 +54,7 @@ class BaseAPITest(TestCase):
         return c
 
     def make_business(self, phone, name="Biznes", city=None, category=None):
-        user = User.objects.create_user(phone, PASSWORD, role=User.Role.BUSINESS)
+        user = User.objects.create_user(phone, password=PASSWORD, role=User.Role.BUSINESS)
         profile = BusinessProfile.objects.create(
             user=user, name=name, phone=phone, telegram_username="tg_" + phone[-4:],
             city=city or self.qoqon, category=category or self.usta,
@@ -146,6 +147,49 @@ class AuthTests(BaseAPITest):
         self.assertEqual(c.post("/api/auth/logout/").status_code, 204)
         self.assertEqual(c.get("/api/auth/me/").status_code, 401)
 
+    def authed(self, token):
+        c = APIClient()
+        c.credentials(HTTP_AUTHORIZATION="Token " + token)
+        return c
+
+    def test_change_password(self):
+        old_token = self.register().data["token"]
+        c = self.authed(old_token)
+        r = c.post("/api/auth/change-password/", {"old_password": PASSWORD, "new_password": "Yangi2026Parol!"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertNotEqual(r.data["token"], old_token)
+        self.assertEqual(c.get("/api/auth/me/").status_code, 401)  # eski token o'chdi
+        self.assertEqual(self.authed(r.data["token"]).get("/api/auth/me/").status_code, 200)
+        login = self.anon.post("/api/auth/login/", {"phone": "901112233", "password": "Yangi2026Parol!"}, format="json")
+        self.assertEqual(login.status_code, 200)
+
+    def test_change_password_wrong_old_and_weak_new(self):
+        c = self.authed(self.register().data["token"])
+        r = c.post("/api/auth/change-password/", {"old_password": "xato", "new_password": "Yangi2026Parol!"}, format="json")
+        self.assertIn("old_password", r.data)
+        r = c.post("/api/auth/change-password/", {"old_password": PASSWORD, "new_password": "123"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("new_password", r.data)
+
+    @override_settings(MEDIA_ROOT=TEMP_MEDIA)
+    def test_delete_account_removes_everything(self):
+        user, biz = self.make_business("+998901000007", "O'chadigan")
+        listing = Listing.objects.create(business=biz, title="E'lon")
+        c = self.client_for(user)
+        img_id = c.post(f"/api/listings/{listing.pk}/images/", {"image": make_image()}, format="multipart").data["id"]
+        path = ListingImage.objects.get(pk=img_id).image.path
+        self.assertEqual(c.post("/api/auth/delete-account/", {"password": "xato"}, format="json").status_code, 400)
+        self.assertEqual(c.post("/api/auth/delete-account/", {"password": PASSWORD}, format="json").status_code, 204)
+        self.assertFalse(User.objects.filter(pk=user.pk).exists())
+        self.assertFalse(Listing.objects.filter(pk=listing.pk).exists())
+        self.assertFalse(os.path.exists(path))  # rasm fayli ham o'chdi
+
+    def test_admin_cannot_delete_self_via_api(self):
+        admin = User.objects.create_superuser("+998900000000", password=PASSWORD)
+        r = self.client_for(admin).post("/api/auth/delete-account/", {"password": PASSWORD}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertTrue(User.objects.filter(pk=admin.pk).exists())
+
     def test_me_requires_token(self):
         r = self.anon.get("/api/auth/me/")
         self.assertEqual(r.status_code, 401)
@@ -170,7 +214,7 @@ class ReferenceTests(BaseAPITest):
 
     def test_read_only(self):
         self.assertIn(self.anon.post("/api/regions/", {"name": "x"}).status_code, (401, 403, 405))
-        admin = User.objects.create_superuser("+998900000000", PASSWORD)
+        admin = User.objects.create_superuser("+998900000000", password=PASSWORD)
         self.assertEqual(self.client_for(admin).post("/api/regions/", {"name": "x"}).status_code, 405)
 
 
@@ -181,7 +225,7 @@ class ReferenceTests(BaseAPITest):
 class BusinessProfileTests(BaseAPITest):
     def setUp(self):
         super().setUp()
-        self.user = User.objects.create_user("+998901000001", PASSWORD, role=User.Role.BUSINESS)
+        self.user = User.objects.create_user("+998901000001", password=PASSWORD, role=User.Role.BUSINESS)
         self.api = self.client_for(self.user)
 
     def profile_data(self, **extra):
@@ -207,7 +251,7 @@ class BusinessProfileTests(BaseAPITest):
         self.assertEqual(r.data["name"], "Yangi nom")
 
     def test_client_cannot_create(self):
-        client_user = User.objects.create_user("+998901000009", PASSWORD)
+        client_user = User.objects.create_user("+998901000009", password=PASSWORD)
         r = self.client_for(client_user).post("/api/business/me/", self.profile_data(), format="json")
         self.assertEqual(r.status_code, 403)
 
@@ -238,7 +282,7 @@ class ListingPublicTests(BaseAPITest):
         self.assertIsNone(biz["telegram_username"])
 
     def test_contacts_visible_for_logged_in(self):
-        client_user = User.objects.create_user("+998901000009", PASSWORD)
+        client_user = User.objects.create_user("+998901000009", password=PASSWORD)
         biz = self.client_for(client_user).get(f"/api/listings/{self.l_a.pk}/").data["business"]
         self.assertEqual(biz["phone"], "+998901000001")
         self.assertEqual(biz["telegram_username"], "tg_0001")
@@ -342,12 +386,12 @@ class ListingOwnerTests(BaseAPITest):
         self.assertEqual(r.data["title"], ["Bu maydon majburiy."])
 
     def test_create_without_profile(self):
-        user = User.objects.create_user("+998901000005", PASSWORD, role=User.Role.BUSINESS)
+        user = User.objects.create_user("+998901000005", password=PASSWORD, role=User.Role.BUSINESS)
         r = self.client_for(user).post("/api/listings/", {"title": "x"}, format="json")
         self.assertEqual(r.status_code, 400)
 
     def test_client_and_guest_cannot_create(self):
-        client_user = User.objects.create_user("+998901000009", PASSWORD)
+        client_user = User.objects.create_user("+998901000009", password=PASSWORD)
         self.assertEqual(self.client_for(client_user).post("/api/listings/", {"title": "x"}, format="json").status_code, 403)
         self.assertEqual(self.anon.post("/api/listings/", {"title": "x"}, format="json").status_code, 401)
 
@@ -406,7 +450,7 @@ class ModelTests(TestCase):
         region = Region.objects.create(name="R")
         city = City.objects.create(region=region, name="C")
         cat = Category.objects.create(name="K")
-        user = User.objects.create_user("+998901000001", PASSWORD, role=User.Role.BUSINESS)
+        user = User.objects.create_user("+998901000001", password=PASSWORD, role=User.Role.BUSINESS)
         biz = BusinessProfile.objects.create(user=user, name="B", phone="+998901000001", city=city, category=cat)
         tariff = Tariff.objects.create(name="T", level=1, price=1, duration_days=30)
         sub = Subscription.objects.create(business=biz, tariff=tariff)
@@ -433,7 +477,7 @@ class ThrottleTests(BaseAPITest):
 class AdminTests(BaseAPITest):
     def setUp(self):
         super().setUp()
-        self.admin = User.objects.create_superuser("admin", PASSWORD)
+        self.admin = User.objects.create_superuser("admin", password=PASSWORD)
         self.client.force_login(self.admin)
         self.user, self.biz = self.make_business("+998901000001", "Ali usta")
         self.listing = Listing.objects.create(business=self.biz, title="Santexnik", price=50000)

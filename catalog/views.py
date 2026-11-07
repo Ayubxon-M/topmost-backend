@@ -16,12 +16,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BusinessProfile, Category, City, Listing, Region, Subscription
+from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription
 from .permissions import IsBusiness, IsBusinessOrReadOnly
 from .serializers import (
-    AuthResponseSerializer, BusinessProfileSerializer, CategorySerializer, CitySerializer,
-    ListingImageSerializer, ListingSerializer, LoginSerializer, RegionSerializer,
-    RegisterSerializer, UserSerializer,
+    AuthResponseSerializer, BusinessProfileSerializer, CategorySerializer, ChangePasswordSerializer,
+    CitySerializer, DeleteAccountSerializer, ListingImageSerializer, ListingSerializer, LoginSerializer,
+    RegionSerializer, RegisterSerializer, UserSerializer,
 )
 from .utils import normalize_text
 
@@ -76,6 +76,49 @@ class MeView(APIView):
     @extend_schema(tags=["auth"], summary="Joriy foydalanuvchi", responses=UserSerializer)
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class ChangePasswordView(APIView):
+    """
+    POST /api/auth/change-password/  {old_password, new_password} -> {token, user}
+    Eski token o'chadi (boshqa telefonlardagi kirishlar ham), javobda yangi token qaytadi.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(tags=["auth"], summary="Parolni o'zgartirish", request=ChangePasswordSerializer,
+                   responses={200: AuthResponseSerializer})
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        user.set_password(serializer.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        Token.objects.filter(user=user).delete()
+        token = Token.objects.create(user=user)
+        return Response({"token": token.key, "user": UserSerializer(user).data})
+
+
+class DeleteAccountView(APIView):
+    """
+    POST /api/auth/delete-account/  {password} -> 204
+    Akkaunt, biznes profil, e'lonlar va rasmlar butunlay o'chadi.
+    (App Store va Google Play ilovada shunday imkoniyat bo'lishini talab qiladi.)
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(tags=["auth"], summary="Akkauntni butunlay o'chirish", request=DeleteAccountSerializer,
+                   responses={204: None})
+    def post(self, request):
+        serializer = DeleteAccountSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        if user.is_staff or user.is_superuser:
+            raise ValidationError({"detail": "Admin akkauntini ilova orqali o'chirib bo'lmaydi."})
+        # Rasm fayllarini diskdan ham o'chiramiz (bazadagi yozuvlar CASCADE bilan o'chadi)
+        for img in ListingImage.objects.filter(listing__business__user=user):
+            img.image.delete(save=False)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ---------- Ma'lumotnomalar (ochiq, faqat o'qish) ----------

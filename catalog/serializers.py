@@ -75,6 +75,33 @@ class LoginSerializer(serializers.Serializer):
         return attrs
 
 
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    new_password = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+    def validate_old_password(self, value):
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("Joriy parol noto'g'ri.")
+        return value
+
+    def validate_new_password(self, value):
+        try:
+            validate_password(value, user=self.context["request"].user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
+
+class DeleteAccountSerializer(serializers.Serializer):
+    """Akkauntni tasodifan o'chirib yubormaslik uchun parol so'raladi."""
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+
+    def validate_password(self, value):
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("Parol noto'g'ri.")
+        return value
+
+
 # ---------- Ma'lumotnomalar ----------
 
 class RegionSerializer(serializers.ModelSerializer):

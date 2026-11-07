@@ -568,6 +568,42 @@ class LoadInitialDataTests(TestCase):
         self.assertEqual(Region.objects.count(), 1)
 
 
+class BackupTests(TestCase):
+    def test_backup_creates_zip_and_keeps_last_n(self):
+        import zipfile
+        from unittest import mock
+        from django.core.management import call_command
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as media, \
+                tempfile.TemporaryDirectory() as dbdir:
+            # Test bazasi xotirada bo'ladi, shuning uchun vaqtinchalik fayl-baza yaratamiz
+            db_path = os.path.join(dbdir, "db.sqlite3")
+            import sqlite3
+            con = sqlite3.connect(db_path)
+            con.execute("create table t (x int)")
+            con.execute("insert into t values (42)")
+            con.commit()
+            con.close()
+            os.makedirs(os.path.join(media, "listings"))
+            with open(os.path.join(media, "listings", "a.png"), "wb") as f:
+                f.write(b"rasm")
+            dbs = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": db_path}}
+            with mock.patch.dict(os.environ, {"BACKUP_DIR": tmp, "BACKUP_KEEP": "2"}), \
+                    override_settings(MEDIA_ROOT=media), \
+                    mock.patch("catalog.management.commands.backup.settings.DATABASES", dbs):
+                for stamp in ["2026-01-01_000000", "2026-01-02_000000"]:  # eski nusxalar
+                    open(os.path.join(tmp, f"topmost-{stamp}.zip"), "wb").close()
+                call_command("backup", stdout=StringIO())
+            zips = sorted(os.listdir(tmp))
+            self.assertEqual(len(zips), 2)  # eng eskisi o'chdi
+            self.assertNotIn("topmost-2026-01-01_000000.zip", zips)
+            with zipfile.ZipFile(os.path.join(tmp, zips[-1])) as zf:
+                self.assertIn("media/listings/a.png", zf.namelist())
+                zf.extract("db.sqlite3", tmp)
+            con = sqlite3.connect(os.path.join(tmp, "db.sqlite3"))
+            self.assertEqual(con.execute("select x from t").fetchone()[0], 42)
+            con.close()
+
+
 class PrivacyPageTests(TestCase):
     def test_privacy_page_public(self):
         r = self.client.get("/privacy/")

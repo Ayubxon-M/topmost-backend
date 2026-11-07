@@ -10,6 +10,9 @@ __pycache__/
 db.sqlite3
 media/
 
+# Zaxira nusxalar (python manage.py backup)
+backups/
+
 # collectstatic natijasi (serverda yaratiladi)
 staticfiles/
 

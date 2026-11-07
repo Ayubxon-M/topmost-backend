@@ -37,7 +37,7 @@ pip install -r requirements.txt
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
+``` 
 
 > Python 3.15 da PyYAML o'rnatishda xato chiqsa, README.md dagi usuldan foydalaning.
 
@@ -71,8 +71,12 @@ HTTPS=False      ← SSL sertifikat ulanmaguncha False; ulangandan keyin True
 python manage.py migrate              # bazani yaratish
 python manage.py collectstatic        # admin panel CSS/JS fayllarini yig'ish
 python manage.py createsuperuser      # admin panel uchun login va parol
+python manage.py load_initial_data    # Farg'ona viloyati shahar/tumanlari va kategoriyalar
 python manage.py test                 # hammasi OK chiqishi kerak
 ```
+
+Keyin admin panelda **tariflarni** (nomi, daraja, narx, muddat) o'zingiz qo'shing, chunki narxni
+siz belgilaysiz. Boshqa viloyat yoki kategoriya kerak bo'lsa, ularni ham admin paneldan qo'shasiz.
 
 ## 5. Ishga tushirish va tekshirish
 
@@ -138,8 +142,45 @@ Manzil tayyor bo'lgach, uni Flutter dasturchiga bering: API.md dagi `baseUrl` sh
 ## 8. Zaxira nusxa (backup)
 
 Eng qimmatli fayllar: **`db.sqlite3`** (hamma ma'lumotlar) va **`media/`** (e'lon rasmlari).
-Ularni har kuni boshqa diskka yoki fleshkaga nusxalab boring. Windows'da Task Scheduler,
-Linux'da cron bilan bu ishni avtomatlashtirsa bo'ladi.
+Ikkalasini bitta buyruq zip faylga yig'adi:
+
+```bash
+python manage.py backup
+```
+
+`.env` faylida qayerga saqlanishini va nechta nusxa turishini belgilang. Nusxani **boshqa diskka**
+qo'ying: server diski buzilsa ham nusxa qoladi.
+```
+BACKUP_DIR=D:\topmost-backups        # Linux: /mnt/backup/topmost
+BACKUP_KEEP=14                       # oxirgi 14 ta nusxa qoladi, eskilari o'chadi
+```
+
+**Har kuni avtomatik ishlashi uchun:**
+- **Windows** (Task Scheduler): *Create Task* → Triggers: *Daily*, soat 03:00 →
+  Actions: Program `C:\...\topmost-backend\venv\Scripts\python.exe`, Arguments `manage.py backup`,
+  Start in `C:\...\topmost-backend`.
+- **Linux** (cron): `crontab -e` ni oching va quyidagi qatorni qo'shing:
+  ```
+  0 3 * * * cd /home/topmost/topmost-backend && venv/bin/python manage.py backup >> backups.log 2>&1
+  ```
+
+**Nusxadan qayta tiklash:** backend'ni to'xtating, zip faylni oching, ichidagi `db.sqlite3` va `media/`
+papkasini loyiha papkasiga ko'chiring (eskilarining ustidan yozing), keyin backend'ni qayta yoqing.
+
+> Har oyda bir marta nusxadan tiklashni sinab ko'ring. Ochilmaydigan nusxa yo'q nusxa bilan barobar.
+
+## 8.1. Maxfiylik siyosati
+
+`https://<sizning domeningiz>/privacy/` sahifasi tayyor. Bu havolani App Store va Google Play'da
+ilova sahifasiga yozasiz. Google Play'dagi "Akkauntni o'chirish" havolasi esa:
+`https://<domen>/privacy/#delete`.
+
+`.env` ga foydalanuvchilar bog'lanadigan aloqani yozing, u sahifada ko'rinadi:
+```
+PRIVACY_CONTACT=Telegram @topmost_admin yoki +998 90 123 45 67
+```
+> Matnni ([templates/privacy.html](templates/privacy.html)) kompaniya rahbari yoki ustozingiz bilan
+> bir o'qib chiqing, kerak bo'lsa o'zgartiring.
 
 ## 9. Yangilash (kodga o'zgartirish kiritilganda)
 

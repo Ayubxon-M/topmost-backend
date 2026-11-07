@@ -25,7 +25,9 @@ SECRET_KEY = 'django-insecure-8^8!^p56_kpk)bz_%^*!#_(82hsenwl&015wemz&s4k4&)aq$)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# Development: istalgan manzildan ulanish mumkin (emulyator 10.0.2.2, telefon 192.168.x.x, ngrok).
+# DIQQAT: production'da bu yerga faqat aniq domen yoziladi.
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition

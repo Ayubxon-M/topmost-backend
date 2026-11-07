@@ -556,6 +556,18 @@ class AdminTests(BaseAPITest):
 # Swagger hujjati
 # =====================================================================
 
+class PrivacyPageTests(TestCase):
+    def test_privacy_page_public(self):
+        r = self.client.get("/privacy/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Maxfiylik siyosati")
+        self.assertContains(r, 'id="delete"')  # Google Play: akkauntni o'chirish havolasi
+
+    @override_settings(PRIVACY_CONTACT="Telegram @topmost_admin")
+    def test_privacy_contact_shown(self):
+        self.assertContains(self.client.get("/privacy/"), "@topmost_admin")
+
+
 class DocsTests(TestCase):
     def test_docs_and_schema_open(self):
         self.assertEqual(self.client.get("/api/docs/").status_code, 200)

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maxfiylik siyosati — TOPMOST</title>
+  <style>
+    body { margin: 0; background: #f5f7f8; color: #1f2933; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { color: #0f766e; margin-bottom: 4px; }
+    h2 { margin-top: 32px; font-size: 1.2rem; }
+    .muted { color: #6b7280; font-size: .9rem; }
+    .box { background: #fff; border-left: 4px solid #0f766e; padding: 12px 16px; border-radius: 6px; }
+    li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>TOPMOST — Maxfiylik siyosati</h1>
+  <p class="muted">Oxirgi yangilanish: {{ updated }}</p>
+
+  <p>TOPMOST — ustalar, do'konlar va kafelar e'lonlarini joylash va topish uchun mobil ilova.
+    Bu sahifada qanday ma'lumotlaringizni yig'ishimiz, ulardan nima uchun foydalanishimiz va
+    ularni qanday o'chirishingiz mumkinligi yozilgan.</p>
+
+  <h2>1. Qanday ma'lumotlarni yig'amiz</h2>
+  <ul>
+    <li><b>Telefon raqami va parol</b>: ro'yxatdan o'tish va tizimga kirish uchun. Parol shifrlangan
+      (xeshlangan) holda saqlanadi, uni hech kim, hatto adminlar ham ko'ra olmaydi.</li>
+    <li><b>Biznes ma'lumotlari</b> (faqat biznes akkauntlar uchun): nomi, aloqa telefoni,
+      Telegram username, shahar va kategoriya.</li>
+    <li><b>E'lonlar va rasmlar</b>: siz joylagan sarlavha, izoh, narx va rasmlar.</li>
+  </ul>
+  <p>Biz joylashuvingizni (GPS), kontaktlaringizni, reklama identifikatorlarini yig'maymiz va
+    sizni boshqa ilovalarda kuzatmaymiz.</p>
+
+  <h2>2. Ma'lumotlardan nima uchun foydalanamiz</h2>
+  <ul>
+    <li>Akkauntingizni yaratish va himoya qilish.</li>
+    <li>E'lonlaringizni ilovada boshqa foydalanuvchilarga ko'rsatish.</li>
+    <li>Qoidalarni buzgan e'lon va akkauntlarni bloklash.</li>
+  </ul>
+
+  <h2>3. Kim ko'radi</h2>
+  <ul>
+    <li>E'lonlar, biznes nomi, shahar va kategoriya hammaga ochiq.</li>
+    <li>Biznesning aloqa telefoni va Telegram username'i faqat ilovada <b>tizimga kirgan</b>
+      foydalanuvchilarga ko'rinadi.</li>
+    <li>Mijoz akkauntining telefon raqami boshqa foydalanuvchilarga ko'rsatilmaydi.</li>
+    <li>Ma'lumotlaringizni sotmaymiz va reklama uchun uchinchi shaxslarga bermaymiz.
+      Faqat qonun talab qilgan hollarda vakolatli davlat organlariga berilishi mumkin.</li>
+  </ul>
+
+  <h2>4. Saqlash va himoya</h2>
+  <p>Ma'lumotlar O'zbekistondagi serverimizda saqlanadi. Ilova va server o'rtasidagi aloqa
+    shifrlangan (HTTPS). Ma'lumotlar akkauntingiz mavjud bo'lgan muddat davomida saqlanadi.</p>
+
+  <h2 id="delete">5. Akkauntni o'chirish</h2>
+  <div class="box">
+    <p><b>Ilovada:</b> Sozlamalar → "Akkauntni o'chirish" → parolingizni kiriting.</p>
+    <p>Shundan keyin akkauntingiz, biznes profilingiz, barcha e'lonlaringiz va rasmlaringiz
+      serverdan <b>darhol va butunlay</b> o'chiriladi. Ularni qayta tiklab bo'lmaydi.</p>
+    {% if contact %}<p><b>Ilovaga kira olmasangiz:</b> {{ contact }} orqali bog'laning va ro'yxatdan
+      o'tgan telefon raqamingizni yozing. So'rovingiz 7 kun ichida bajariladi.</p>{% endif %}
+  </div>
+
+  <h2>6. Bolalar</h2>
+  <p>Ilova 16 yoshdan kichik bolalar uchun mo'ljallanmagan.</p>
+
+  <h2>7. O'zgarishlar</h2>
+  <p>Bu siyosat o'zgarsa, yangi matn shu sahifada e'lon qilinadi va yuqoridagi sana yangilanadi.</p>
+
+  {% if contact %}<h2>8. Aloqa</h2>
+  <p>Savollar bo'lsa: {{ contact }}</p>{% endif %}
+</main>
+</body>
+</html>

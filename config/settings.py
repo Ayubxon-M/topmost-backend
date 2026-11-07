@@ -233,6 +233,12 @@ SPECTACULAR_SETTINGS = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Maxfiylik siyosati sahifasi (/privacy/). Matn: templates/privacy.html
+# Matn o'zgarsa, sanani ham yangilang.
+PRIVACY_UPDATED = '7-noyabr, 2026'
+# Foydalanuvchi bog'lanadigan joy, masalan: "Telegram @topmost_admin yoki +998 90 123 45 67"
+PRIVACY_CONTACT = os.environ.get('PRIVACY_CONTACT', '')
+
 # E'lon rasmlarini (media/) Django o'zi bersinmi? Development'da doim ha.
 # Serverda nginx bo'lsa False (nginx tezroq beradi), nginx bo'lmasa True.
 SERVE_MEDIA = DEBUG or os.environ.get('SERVE_MEDIA', 'True').lower() in ('1', 'true', 'yes', 'on')

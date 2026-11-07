@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{# Barcha admin sahifalari uchun umumiy qobiq: sarlavha, logotip va TOPMOST ranglari #}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title }}{% endblock %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'topmost/admin.css' %}" {% csp_nonce_attr %}>{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+  <a href="{% url 'admin:index' %}" class="tm-brand">
+    <span class="tm-logo" aria-hidden="true">T</span>
+    <span class="tm-brand-text">{{ site_header }}<small>boshqaruv paneli</small></span>
+  </a>
+</div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

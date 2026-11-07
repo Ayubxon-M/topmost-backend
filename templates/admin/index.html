@@ -1,0 +1,33 @@
+{% extends "admin/index.html" %}
+{# Bosh sahifa: statistika kartochkalari + "nimadan boshlash" ro'yxati + standart bo'limlar #}
+
+{% block content %}
+<div class="tm-dashboard">
+
+  {% if not topmost_setup_done %}
+  <section class="tm-setup">
+    <h2>Ishni boshlash</h2>
+    <p>Ilova to'liq ishlashi uchun avval quyidagilarni kiriting:</p>
+    <ol>
+      {% for step in topmost_setup %}
+      <li class="{% if step.done %}tm-done{% endif %}">
+        <a href="{{ step.url }}">{{ step.label }}</a>
+        {% if step.done %}<span class="tm-badge tm-green">bajarildi</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  <section class="tm-stats" aria-label="Statistika">
+    {% for s in topmost_stats %}
+    <a class="tm-stat tm-stat-{{ s.color }}" href="{{ s.url }}">
+      <span class="tm-stat-value">{{ s.value }}</span>
+      <span class="tm-stat-label">{{ s.label }}</span>
+    </a>
+    {% endfor %}
+  </section>
+
+</div>
+{{ block.super }}
+{% endblock %}

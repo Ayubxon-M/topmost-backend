@@ -1,0 +1,243 @@
+/* =========================================================
+   TOPMOST admin panel dizayni
+   Django admin o'zgaruvchilarini (CSS variables) qayta belgilaymiz.
+   ========================================================= */
+
+/* ---------- Yorug' mavzu ---------- */
+:root,
+html[data-theme="light"] {
+    --primary: #0d9488;
+    --secondary: #0f766e;
+    --accent: #5eead4;
+    --primary-fg: #fff;
+
+    --header-color: #cbd5e1;
+    --header-branding-color: #fff;
+    --header-bg: #0f172a;
+    --header-link-color: #e2e8f0;
+
+    --breadcrumbs-fg: #ccfbf1;
+    --breadcrumbs-link-fg: #fff;
+    --breadcrumbs-bg: #115e59;
+
+    --link-fg: #0f766e;
+    --link-hover-color: #134e4a;
+    --link-selected-fg: #0f766e;
+
+    --body-bg: #f8fafc;
+    --darkened-bg: #f1f5f9;
+    --selected-row: #ccfbf1;
+    --hairline-color: #e2e8f0;
+    --border-color: #cbd5e1;
+
+    --button-bg: #0d9488;
+    --button-hover-bg: #0f766e;
+    --default-button-bg: #0f766e;
+    --default-button-hover-bg: #134e4a;
+
+    --tm-card-bg: #fff;
+    --tm-shadow: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
+    --tm-radius: 10px;
+}
+
+/* ---------- Qorong'i mavzu ---------- */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --primary: #134e4a;
+        --secondary: #0f766e;
+        --header-bg: #020617;
+        --breadcrumbs-bg: #134e4a;
+        --link-fg: #5eead4;
+        --link-hover-color: #99f6e4;
+        --link-selected-fg: #5eead4;
+        --body-bg: #0b1120;
+        --darkened-bg: #111827;
+        --selected-row: #134e4a;
+        --hairline-color: #1f2937;
+        --border-color: #334155;
+        --tm-card-bg: #111827;
+        --tm-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+    }
+}
+html[data-theme="dark"] {
+    --primary: #134e4a;
+    --secondary: #0f766e;
+    --header-bg: #020617;
+    --breadcrumbs-bg: #134e4a;
+    --link-fg: #5eead4;
+    --link-hover-color: #99f6e4;
+    --link-selected-fg: #5eead4;
+    --body-bg: #0b1120;
+    --darkened-bg: #111827;
+    --selected-row: #134e4a;
+    --hairline-color: #1f2937;
+    --border-color: #334155;
+    --tm-card-bg: #111827;
+    --tm-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+
+/* ---------- Sarlavha va logotip ---------- */
+#header {
+    padding: 12px 32px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .06);
+}
+.tm-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none !important;
+}
+.tm-logo {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #14b8a6, #0f766e);
+    color: #fff;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: 0;
+}
+.tm-brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: .06em;
+    color: #fff;
+}
+.tm-brand-text small {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    color: var(--accent);
+    text-transform: none;
+}
+
+/* ---------- Bloklar (modullar) ---------- */
+.module {
+    background: var(--tm-card-bg);
+    border-radius: var(--tm-radius);
+    box-shadow: var(--tm-shadow);
+    overflow: hidden;
+}
+.module h2, .module caption, .inline-group h2 {
+    font-size: 13px;
+    letter-spacing: .02em;
+    padding: 10px 14px;
+}
+#changelist .results, #changelist-filter {
+    border-radius: var(--tm-radius);
+    box-shadow: var(--tm-shadow);
+    overflow: hidden;
+}
+#result_list tbody tr:hover td, #result_list tbody tr:hover th {
+    background: var(--darkened-bg);
+}
+#result_list td, #result_list th { vertical-align: middle; }
+fieldset.module .description {
+    padding: 8px 14px;
+    color: var(--body-quiet-color);
+}
+
+/* Tugmalar */
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+    border-radius: 8px;
+}
+.object-tools a {
+    border-radius: 999px;
+}
+
+/* ---------- Rangli belgilar ---------- */
+.tm-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+.tm-green  { background: #dcfce7; color: #166534; }
+.tm-red    { background: #fee2e2; color: #991b1b; }
+.tm-orange { background: #ffedd5; color: #9a3412; }
+.tm-gray   { background: #e5e7eb; color: #374151; }
+.tm-blue   { background: #dbeafe; color: #1e40af; }
+.tm-teal   { background: #ccfbf1; color: #115e59; }
+.tm-purple { background: #ede9fe; color: #5b21b6; }
+
+/* ---------- Rasmlar ---------- */
+.tm-thumb {
+    display: inline-grid;
+    place-items: center;
+    object-fit: cover;
+    border-radius: 8px;
+    background: var(--darkened-bg);
+    border: 1px solid var(--hairline-color);
+    color: var(--body-quiet-color);
+    font-size: 10px;
+    text-align: center;
+}
+.tm-thumb-sm { width: 44px; height: 44px; }
+.tm-thumb-md { width: 96px; height: 96px; }
+
+/* ---------- Bosh sahifa ---------- */
+.tm-dashboard { margin-bottom: 20px; }
+
+.tm-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+}
+.tm-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+    border-radius: var(--tm-radius);
+    background: var(--tm-card-bg);
+    box-shadow: var(--tm-shadow);
+    border-top: 4px solid var(--tm-c, var(--primary));
+    text-decoration: none !important;
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+.tm-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, .12);
+}
+.tm-stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--body-loud-color);
+    font-variant-numeric: tabular-nums;
+}
+.tm-stat-label { font-size: 12.5px; color: var(--body-quiet-color); }
+.tm-stat-green  { --tm-c: #16a34a; }
+.tm-stat-red    { --tm-c: #dc2626; }
+.tm-stat-orange { --tm-c: #ea580c; }
+.tm-stat-gray   { --tm-c: #6b7280; }
+.tm-stat-blue   { --tm-c: #2563eb; }
+.tm-stat-teal   { --tm-c: #0d9488; }
+.tm-stat-purple { --tm-c: #7c3aed; }
+
+.tm-setup {
+    margin-bottom: 16px;
+    padding: 16px 20px;
+    border-radius: var(--tm-radius);
+    background: var(--tm-card-bg);
+    box-shadow: var(--tm-shadow);
+    border-left: 4px solid #f59e0b;
+}
+.tm-setup h2 { margin: 0 0 4px; font-size: 16px; }
+.tm-setup p { margin: 0 0 8px; color: var(--body-quiet-color); }
+.tm-setup ol { margin: 0; padding-left: 20px; }
+.tm-setup li { padding: 3px 0; font-size: 14px; }
+.tm-setup li.tm-done a { text-decoration: line-through; color: var(--body-quiet-color); }
+
+/* Telefon ekranida ham chiroyli turishi uchun */
+@media (max-width: 767px) {
+    #header { padding: 10px 16px; }
+    .tm-stats { grid-template-columns: repeat(2, 1fr); }
+    .tm-stat-value { font-size: 22px; }
+}

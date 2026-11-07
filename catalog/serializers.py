@@ -127,21 +127,13 @@ class CategorySerializer(serializers.ModelSerializer):
 # ---------- Biznes profil ----------
 
 class BusinessPublicSerializer(serializers.ModelSerializer):
-    """E'lon ichida ko'rinadigan biznes ma'lumoti. Kontaktlar faqat tizimga kirganlarga."""
+    """E'lon ichida ko'rinadigan biznes ma'lumoti. Kontaktlar hammaga (mehmonga ham) ochiq."""
     city = CitySerializer(read_only=True)
     category = CategorySerializer(read_only=True)
 
     class Meta:
         model = BusinessProfile
         fields = ["id", "name", "phone", "telegram_username", "city", "category"]
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        request = self.context.get("request")
-        if not (request and request.user.is_authenticated):
-            data["phone"] = None
-            data["telegram_username"] = None
-        return data
 
 
 class TariffSerializer(serializers.ModelSerializer):

@@ -300,10 +300,12 @@ class ListingPublicTests(BaseAPITest):
         self.assertEqual(r.status_code, 200)
         return [x["title"] for x in r.data["results"]]
 
-    def test_contacts_hidden_for_guest(self):
+    def test_contacts_visible_for_guest(self):
         biz = self.anon.get(f"/api/listings/{self.l_a.pk}/").data["business"]
-        self.assertIsNone(biz["phone"])
-        self.assertIsNone(biz["telegram_username"])
+        self.assertEqual(biz["phone"], "+998901000001")
+        self.assertEqual(biz["telegram_username"], "tg_0001")
+        listed = self.anon.get("/api/listings/").data["results"][0]["business"]
+        self.assertIsNotNone(listed["phone"])
 
     def test_contacts_visible_for_logged_in(self):
         client_user = User.objects.create_user("+998901000009", password=PASSWORD)

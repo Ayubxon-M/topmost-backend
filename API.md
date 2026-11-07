@@ -46,8 +46,8 @@ Authorization: Token d3bdbea26ef7eb96510d52f17879b115f3417acd
 ### Rollar
 | role | Nima qila oladi |
 |---|---|
-| mehmon (token yo'q) | E'lonlarni ko'rish. **Telefon va Telegram `null` keladi.** |
-| `client` | Mehmon + telefon va Telegram'ni ko'radi |
+| mehmon (token yo'q) | E'lonlarni va biznes kontaktlarini (telefon, Telegram) ko'rish |
+| `client` | Mehmon bilan bir xil + akkaunt (parol, sozlamalar) |
 | `business` | Client + biznes profil yaratish, o'z e'lonlarini qo'shish/tahrirlash/o'chirish |
 
 ### Sahifalash (pagination)
@@ -217,7 +217,7 @@ Filtrlar (hammasi ixtiyoriy, birga ishlatish mumkin):
 Tartib serverda belgilanadi: avval pullik tarifli bizneslar (1-daraja, keyin 2-daraja), keyin qolganlari; har guruh ichida yangilari avval.
 Yashirilgan, bloklangan e'lonlar va bloklangan bizneslarning e'lonlari ro'yxatga chiqmaydi.
 
-**200** javob (mehmon uchun — `phone` va `telegram_username` = `null`):
+**200** javob (token bo'lsa ham, bo'lmasa ham bir xil):
 ```json
 {
   "count": 1,
@@ -236,8 +236,8 @@ Yashirilgan, bloklangan e'lonlar va bloklangan bizneslarning e'lonlari ro'yxatga
       "business": {
         "id": 1,
         "name": "Ali usta",
-        "phone": null,
-        "telegram_username": null,
+        "phone": "+998901234567",
+        "telegram_username": "aliusta",
         "city": { "id": 1, "name": "Qo'qon", "region": 1 },
         "category": { "id": 1, "name": "Ustalar" }
       },
@@ -248,10 +248,9 @@ Yashirilgan, bloklangan e'lonlar va bloklangan bizneslarning e'lonlari ro'yxatga
   ]
 }
 ```
-Token bilan so'ralganda `phone` = `"+998901234567"`, `telegram_username` = `"aliusta"` (`@` belgisisiz; bo'sh bo'lsa `""`).
+`telegram_username` — `@` belgisisiz; biznes Telegram yozmagan bo'lsa `""` (bo'sh) — unda Telegram tugmasini yashiring.
 
 > Telegram'ni ochish: `https://t.me/<telegram_username>`. Qo'ng'iroq: `tel:<phone>`.
-> Mehmonga `null` kelsa — "Kontaktni ko'rish uchun tizimga kiring" tugmasini ko'rsating.
 
 ### GET `/api/listings/{id}/`
 Bitta e'lon — `results` ichidagi obyekt bilan bir xil. Yashirilgan/bloklangan bo'lsa — `404`.

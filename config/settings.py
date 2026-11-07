@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'catalog',
     'rest_framework',
     'rest_framework.authtoken',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -139,6 +140,8 @@ REST_FRAMEWORK = {
         # Brauzerda /api/ sahifalarini admin login bilan ko'rish uchun
         'rest_framework.authentication.SessionAuthentication',
     ],
+    # Swagger hujjati (/api/docs/) koddan avtomatik yaratiladi
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     # So'rovlar sonini cheklash (bir kishi serverni "bosib" qo'ymasligi uchun)
@@ -150,6 +153,15 @@ REST_FRAMEWORK = {
         'anon': '60/min',
         'user': '120/min',
     },
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'TOPMOST API',
+    'DESCRIPTION': "Qo'qondagi ustalar, do'konlar va kafelar e'lonlari uchun mobil ilova API.\n\n"
+                   "Tizimga kirgandan keyin har so'rovga sarlavha qo'shing: `Authorization: Token <token>`",
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,  # rasm yuklashda fayl maydoni to'g'ri ko'rinishi uchun
 }
 
 MEDIA_URL = '/media/'

@@ -5,6 +5,8 @@ from django.db.models import IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
@@ -17,8 +19,9 @@ from rest_framework.views import APIView
 from .models import BusinessProfile, Category, City, Listing, Region, Subscription
 from .permissions import IsBusiness, IsBusinessOrReadOnly
 from .serializers import (
-    BusinessProfileSerializer, CategorySerializer, CitySerializer, ListingImageSerializer,
-    ListingSerializer, LoginSerializer, RegionSerializer, RegisterSerializer, UserSerializer,
+    AuthResponseSerializer, BusinessProfileSerializer, CategorySerializer, CitySerializer,
+    ListingImageSerializer, ListingSerializer, LoginSerializer, RegionSerializer,
+    RegisterSerializer, UserSerializer,
 )
 from .utils import normalize_text
 
@@ -32,6 +35,8 @@ class RegisterView(APIView):
     """POST /api/auth/register/  {phone, password, role} -> {token, user}"""
     permission_classes = [AllowAny]
 
+    @extend_schema(tags=["auth"], summary="Ro'yxatdan o'tish", request=RegisterSerializer,
+                   responses={201: AuthResponseSerializer})
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -44,6 +49,8 @@ class LoginView(APIView):
     """POST /api/auth/login/  {phone, password} -> {token, user}"""
     permission_classes = [AllowAny]
 
+    @extend_schema(tags=["auth"], summary="Kirish", request=LoginSerializer,
+                   responses={200: AuthResponseSerializer})
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -56,6 +63,7 @@ class LogoutView(APIView):
     """POST /api/auth/logout/  — tokenni o'chiradi, qaytadan login qilish kerak bo'ladi."""
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(tags=["auth"], summary="Chiqish", request=None, responses={204: None})
     def post(self, request):
         Token.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -65,6 +73,7 @@ class MeView(APIView):
     """GET /api/auth/me/  — hozir kim tizimga kirganini ko'rsatadi."""
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(tags=["auth"], summary="Joriy foydalanuvchi", responses=UserSerializer)
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
@@ -113,6 +122,19 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 # ---------- E'lonlar ----------
 
+@extend_schema_view(
+    list=extend_schema(summary="E'lonlar ro'yxati", parameters=[
+        OpenApiParameter("city", OpenApiTypes.INT, description="Shahar/tuman id"),
+        OpenApiParameter("category", OpenApiTypes.INT, description="Kategoriya id"),
+        OpenApiParameter("region", OpenApiTypes.INT, description="Viloyat id"),
+        OpenApiParameter("q", OpenApiTypes.STR, description="Qidiruv (sarlavha va izoh bo'yicha)"),
+    ]),
+    retrieve=extend_schema(summary="Bitta e'lon"),
+    create=extend_schema(summary="E'lon qo'shish (biznes)"),
+    update=extend_schema(summary="E'lonni to'liq tahrirlash (o'ziniki)"),
+    partial_update=extend_schema(summary="E'lonni qisman tahrirlash (o'ziniki)"),
+    destroy=extend_schema(summary="E'lonni o'chirish (o'ziniki)"),
+)
 class ListingViewSet(viewsets.ModelViewSet):
     """
     GET    /api/listings/              — hamma uchun (?city=, ?category=, ?region=, ?q=)
@@ -128,6 +150,8 @@ class ListingViewSet(viewsets.ModelViewSet):
     permission_classes = [IsBusinessOrReadOnly]
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):  # Swagger hujjatini yaratish paytida
+            return Listing.objects.none()
         qs = Listing.objects.select_related(
             "business__city", "business__category", "business__user",
         ).prefetch_related("images")
@@ -184,11 +208,15 @@ class ListingViewSet(viewsets.ModelViewSet):
             img.image.delete(save=False)  # rasm faylini diskdan ham o'chiramiz
         instance.delete()
 
+    @extend_schema(summary="Mening e'lonlarim (biznes, yashirinlari ham)")
     @action(detail=False, methods=["get"], permission_classes=[IsBusiness])
     def mine(self, request):
         page = self.paginate_queryset(self.get_queryset())
         return self.get_paginated_response(self.get_serializer(page, many=True).data)
 
+    @extend_schema(summary="E'longa rasm yuklash (multipart)",
+                   request={"multipart/form-data": ListingImageSerializer},
+                   responses={201: ListingImageSerializer})
     @action(detail=True, methods=["post"], url_path="images", parser_classes=[MultiPartParser, FormParser])
     def upload_image(self, request, pk=None):
         listing = self.get_object()
@@ -199,6 +227,8 @@ class ListingViewSet(viewsets.ModelViewSet):
         serializer.save(listing=listing)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(summary="E'lon rasmini o'chirish", responses={204: None},
+                   parameters=[OpenApiParameter("image_id", OpenApiTypes.INT, OpenApiParameter.PATH)])
     @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>[0-9]+)")
     def delete_image(self, request, pk=None, image_id=None):
         listing = self.get_object()
@@ -224,9 +254,12 @@ class MyBusinessView(APIView):
             raise NotFound("Biznes profil hali yaratilmagan.")
         return profile
 
+    @extend_schema(tags=["business"], summary="Mening biznes profilim", responses=BusinessProfileSerializer)
     def get(self, request):
         return Response(BusinessProfileSerializer(self.get_profile()).data)
 
+    @extend_schema(tags=["business"], summary="Biznes profil yaratish", request=BusinessProfileSerializer,
+                   responses={201: BusinessProfileSerializer})
     def post(self, request):
         if BusinessProfile.objects.filter(user=request.user).exists():
             raise ValidationError({"detail": "Profil allaqachon mavjud. Tahrirlash uchun PATCH ishlating."})
@@ -235,9 +268,13 @@ class MyBusinessView(APIView):
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(tags=["business"], summary="Biznes profilni to'liq tahrirlash",
+                   request=BusinessProfileSerializer, responses=BusinessProfileSerializer)
     def put(self, request):
         return self._update(request, partial=False)
 
+    @extend_schema(tags=["business"], summary="Biznes profilni qisman tahrirlash",
+                   request=BusinessProfileSerializer, responses=BusinessProfileSerializer)
     def patch(self, request):
         return self._update(request, partial=True)
 

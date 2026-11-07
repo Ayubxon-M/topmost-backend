@@ -20,8 +20,14 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "phone", "role", "has_business_profile"]
 
-    def get_has_business_profile(self, user):
+    def get_has_business_profile(self, user) -> bool:
         return hasattr(user, "business")
+
+
+class AuthResponseSerializer(serializers.Serializer):
+    """register va login javobi (faqat hujjat uchun)."""
+    token = serializers.CharField()
+    user = UserSerializer()
 
 
 class RegisterSerializer(serializers.Serializer):

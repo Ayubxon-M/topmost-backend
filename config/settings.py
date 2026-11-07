@@ -10,24 +10,54 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+# ---------------------------------------------------------------------
+# Maxfiy sozlamalar .env faylidan o'qiladi (namuna: .env.example).
+# .env GitHub'ga chiqmaydi (.gitignore). Fayl bo'lmasa — development
+# rejimidagi xavfsiz bo'lmagan standart qiymatlar ishlatiladi.
+# ---------------------------------------------------------------------
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8^8!^p56_kpk)bz_%^*!#_(82hsenwl&015wemz&s4k4&)aq$)'
+def load_env_file(path):
+    """KALIT=qiymat qatorlarini o'qib, os.environ ga qo'shadi (# — izoh)."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding='utf-8').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
+def env_list(name, default=''):
+    """Vergul bilan ajratilgan ro'yxat: "a.uz, b.uz" -> ['a.uz', 'b.uz']"""
+    return [x.strip() for x in os.environ.get(name, default).split(',') if x.strip()]
+
+
+load_env_file(BASE_DIR / '.env')
+
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1', 'true', 'yes', 'on')
+
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured("DEBUG=False bo'lsa, .env faylida SECRET_KEY yozilishi shart.")
+    SECRET_KEY = 'django-insecure-faqat-development-uchun'
 
 # Development: istalgan manzildan ulanish mumkin (emulyator 10.0.2.2, telefon 192.168.x.x, ngrok).
-# DIQQAT: production'da bu yerga faqat aniq domen yoziladi.
-ALLOWED_HOSTS = ['*']
+# Production'da .env ichida aniq domen yoziladi: ALLOWED_HOSTS=api.topmost.uz
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '*' if DEBUG else '')
+
+# Admin panelga HTTPS orqali kirish uchun: CSRF_TRUSTED_ORIGINS=https://api.topmost.uz
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
 
 
 # Application definition

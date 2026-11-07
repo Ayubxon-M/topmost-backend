@@ -4,6 +4,7 @@ Kelgan ma'lumotni tekshirish (validatsiya) ham shu yerda.
 """
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, User
@@ -45,7 +46,11 @@ class RegisterSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         # Django'ning parol qoidalari (juda qisqa, juda oddiy, faqat raqam va h.k.)
-        validate_password(attrs["password"], user=User(username=attrs["phone"]))
+        try:
+            validate_password(attrs["password"], user=User(username=attrs["phone"]))
+        except DjangoValidationError as e:
+            # Xatolar "password" maydoni ostida qaytadi — ilova ularni parol maydoni tagida ko'rsatadi
+            raise serializers.ValidationError({"password": list(e.messages)})
         return attrs
 
     def create(self, validated_data):

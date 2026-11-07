@@ -86,7 +86,7 @@ def int_param(request, name):
     if value in (None, ""):
         return None
     if not value.isdigit():
-        raise ValidationError({name: "Butun son bo'lishi kerak."})
+        raise ValidationError({name: ["Butun son bo'lishi kerak."]})
     return int(value)
 
 

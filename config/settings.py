@@ -113,7 +113,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'uz'
+
+# Django tarjimasida yo'q matnlar uchun o'zimizning tarjimalar (locale/uz/LC_MESSAGES/django.po)
+LOCALE_PATHS = [BASE_DIR / 'locale']
 
 TIME_ZONE = 'Asia/Tashkent'
 
@@ -141,6 +144,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ],
     # Swagger hujjati (/api/docs/) koddan avtomatik yaratiladi
+    # Xatolarni bir xil ko'rinishda qaytarish (catalog/exceptions.py)
+    'EXCEPTION_HANDLER': 'catalog.exceptions.exception_handler',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,

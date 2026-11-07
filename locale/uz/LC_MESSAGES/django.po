@@ -1,0 +1,510 @@
+# TOPMOST — o'zbekcha tarjimalar.
+# Django va DRF'ning o'zbekcha tarjimasida yo'q bo'lgan (yoki chala) matnlar.
+# O'zgartirgandan keyin: python manage.py compile_translations
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: uz\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+# ===================== Admin panel =====================
+
+msgid "Log in"
+msgstr "Kirish"
+
+msgid "Home"
+msgstr "Bosh sahifa"
+
+msgid "Go"
+msgstr "Bajarish"
+
+msgid "Clear selection"
+msgstr "Tanlovni bekor qilish"
+
+msgid "Click here to select the objects across all pages"
+msgstr "Barcha sahifalardagi yozuvlarni tanlash uchun shu yerni bosing"
+
+msgid "Select all %(total_count)s %(module_name)s"
+msgstr "Hammasini tanlash (%(total_count)s ta)"
+
+msgid "Models in the %(name)s application"
+msgstr "%(name)s bo'limi"
+
+msgid "You don’t have permission to view or edit anything."
+msgstr "Sizda hech narsani ko'rish yoki tahrirlash huquqi yo'q."
+
+msgid "First, enter a username and password. Then, you’ll be able to edit more user options."
+msgstr "Avval foydalanuvchi nomi va parolni kiriting. Keyin qolgan ma'lumotlarni tahrirlay olasiz."
+
+msgid "Please correct the error below."
+msgstr "Iltimos, quyidagi xatoni tuzating."
+
+msgid "Enter a new password for the user <strong>%(username)s</strong>."
+msgstr "<strong>%(username)s</strong> uchun yangi parol kiriting."
+
+msgid "Skip to main content"
+msgstr "Asosiy qismga o'tish"
+
+msgid "History"
+msgstr "Tarix"
+
+msgid "Hide counts"
+msgstr "Sonlarni yashirish"
+
+msgid "Show counts"
+msgstr "Sonlarni ko'rsatish"
+
+msgid "Clear all filters"
+msgstr "Barcha filtrlarni tozalash"
+
+msgid "Sorting priority: %(priority_number)s"
+msgstr "Saralash tartibi: %(priority_number)s"
+
+msgid "Toggle sorting"
+msgstr "Saralashni almashtirish"
+
+msgid "Toggle theme (current theme: auto)"
+msgstr "Mavzuni almashtirish (hozir: avtomatik)"
+
+msgid "Toggle theme (current theme: light)"
+msgstr "Mavzuni almashtirish (hozir: yorug')"
+
+msgid "Toggle theme (current theme: dark)"
+msgstr "Mavzuni almashtirish (hozir: qorong'i)"
+
+msgid "Objects"
+msgstr "Yozuvlar"
+
+msgid "Yes, I’m sure"
+msgstr "Ha, o'chirilsin"
+
+msgid "No, take me back"
+msgstr "Yo'q, orqaga"
+
+msgid "Delete multiple objects"
+msgstr "Bir nechta yozuvni o'chirish"
+
+msgid "Are you sure you want to delete the %(object_name)s \"%(escaped_object)s\"? All of the following related items will be deleted:"
+msgstr "%(object_name)s \"%(escaped_object)s\" ni o'chirmoqchimisiz? Quyidagi bog'liq yozuvlar ham o'chadi:"
+
+msgid "Are you sure you want to delete the selected %(objects_name)s? All of the following objects and their related items will be deleted:"
+msgstr "Tanlangan yozuvlarni (%(objects_name)s) o'chirmoqchimisiz? Quyidagilar va ularga bog'liq yozuvlar o'chadi:"
+
+msgid " By %(filter_title)s "
+msgstr " %(filter_title)s bo'yicha "
+
+msgid "None available"
+msgstr "Hozircha yo'q"
+
+msgid "Added:"
+msgstr "Qo'shildi:"
+
+msgid "Changed:"
+msgstr "O'zgartirildi:"
+
+msgid "Deleted:"
+msgstr "O'chirildi:"
+
+msgid "Unknown content"
+msgstr "Noma'lum"
+
+msgid "Forgotten your password or username?"
+msgstr "Parol yoki loginni unutdingizmi?"
+
+msgid "Sidebar"
+msgstr "Yon menyu"
+
+msgid "Start typing to filter…"
+msgstr "Qidirish uchun yozing…"
+
+msgid "Filter navigation items"
+msgstr "Menyudan qidirish"
+
+msgid "Date/time"
+msgstr "Sana/vaqt"
+
+msgid "User"
+msgstr "Foydalanuvchi"
+
+msgid "Action"
+msgstr "Amal"
+
+msgid "This object doesn’t have a change history. It probably wasn’t added via this admin site."
+msgstr "Bu yozuvning o'zgarishlar tarixi yo'q. Ehtimol, u admin panel orqali qo'shilmagan."
+
+msgid "Show all"
+msgstr "Hammasini ko'rsatish"
+
+msgid "%(full_result_count)s total"
+msgstr "jami %(full_result_count)s ta"
+
+msgid "Save as new"
+msgstr "Yangi sifatida saqlash"
+
+msgid "Save and add another"
+msgstr "Saqlash va yana qo'shish"
+
+msgid "Save and continue editing"
+msgstr "Saqlash va tahrirlashda qolish"
+
+msgid "Save and view"
+msgstr "Saqlash va ko'rish"
+
+msgid "Close"
+msgstr "Yopish"
+
+msgid "Change selected %(model)s"
+msgstr "Tanlanganni o'zgartirish"
+
+msgid "Add another %(model)s"
+msgstr "Yangi qo'shish"
+
+msgid "Delete selected %(model)s"
+msgstr "Tanlanganni o'chirish"
+
+msgid "View selected %(model)s"
+msgstr "Tanlanganni ko'rish"
+
+msgid "Thanks for spending some quality time with the web site today."
+msgstr "Admin paneldan chiqdingiz."
+
+msgid "Log in again"
+msgstr "Qayta kirish"
+
+msgid "Password change"
+msgstr "Parolni o'zgartirish"
+
+msgid "Your password was changed."
+msgstr "Parolingiz o'zgartirildi."
+
+msgid "Please enter your old password, for security’s sake, and then enter your new password twice so we can verify you typed it in correctly."
+msgstr "Xavfsizlik uchun avval eski parolni, keyin yangi parolni ikki marta kiriting."
+
+msgid "Change my password"
+msgstr "Parolimni o'zgartirish"
+
+msgid "New password:"
+msgstr "Yangi parol:"
+
+msgid "Confirm password:"
+msgstr "Parolni tasdiqlang:"
+
+msgid "Select all objects on this page for an action"
+msgstr "Bu sahifadagi hamma yozuvlarni tanlash"
+
+msgid "Select %s to change"
+msgstr "%s — o'zgartirish uchun tanlang"
+
+msgid "Select %s to view"
+msgstr "%s — ko'rish uchun tanlang"
+
+msgid "Page not found"
+msgstr "Sahifa topilmadi"
+
+msgid "We’re sorry, but the requested page could not be found."
+msgstr "Kechirasiz, so'ralgan sahifa topilmadi."
+
+msgid "Breadcrumbs"
+msgstr "Yo'l"
+
+msgid "No action selected."
+msgstr "Hech qanday amal tanlanmadi."
+
+msgid "Items must be selected in order to perform actions on them. No items have been changed."
+msgstr "Amal bajarish uchun avval yozuvlarni belgilang. Hech narsa o'zgarmadi."
+
+msgid "The {name} “{obj}” was added successfully."
+msgstr "{name} “{obj}” qo'shildi."
+
+msgid "You may edit it again below."
+msgstr "Quyida uni yana tahrirlashingiz mumkin."
+
+msgid "The {name} “{obj}” was added successfully. You may add another {name} below."
+msgstr "{name} “{obj}” qo'shildi. Quyida yana qo'shishingiz mumkin."
+
+msgid "The {name} “{obj}” was changed successfully. You may edit it again below."
+msgstr "{name} “{obj}” o'zgartirildi. Quyida yana tahrirlashingiz mumkin."
+
+msgid "The {name} “{obj}” was added successfully. You may edit it again below."
+msgstr "{name} “{obj}” qo'shildi. Quyida yana tahrirlashingiz mumkin."
+
+msgid "The {name} “{obj}” was changed successfully. You may add another {name} below."
+msgstr "{name} “{obj}” o'zgartirildi. Quyida yana qo'shishingiz mumkin."
+
+msgid "%(name)s with ID “%(key)s” doesn’t exist. Perhaps it was deleted?"
+msgstr "ID “%(key)s” bo'lgan yozuv (%(name)s) topilmadi. Ehtimol, o'chirilgan."
+
+msgid "Added {name} “{object}”."
+msgstr "{name} “{object}” qo'shildi."
+
+msgid "Added."
+msgstr "Qo'shildi."
+
+msgid "Changed {fields} for {name} “{object}”."
+msgstr "{name} “{object}”: {fields} o'zgartirildi."
+
+msgid "Changed {fields}."
+msgstr "{fields} o'zgartirildi."
+
+msgid "Deleted {name} “{object}”."
+msgstr "{name} “{object}” o'chirildi."
+
+msgid "No fields changed."
+msgstr "Hech narsa o'zgarmadi."
+
+msgid "Hold down “Control”, or “Command” on a Mac, to select more than one."
+msgstr "Bir nechtasini tanlash uchun “Ctrl” (Mac'da “Command”) tugmasini bosib turing."
+
+msgid "Change history: %s"
+msgstr "O'zgarishlar tarixi: %s"
+
+msgid "%(count)s %(name)s was changed successfully."
+msgid_plural "%(count)s %(name)s were changed successfully."
+msgstr[0] "%(count)s ta yozuv o'zgartirildi."
+
+msgid "%(total_count)s selected"
+msgid_plural "All %(total_count)s selected"
+msgstr[0] "%(total_count)s ta tanlandi"
+
+msgid "0 of %(cnt)s selected"
+msgstr "%(cnt)s tadan 0 tasi tanlandi"
+
+msgid "%(counter)s result"
+msgid_plural "%(counter)s results"
+msgstr[0] "%(counter)s ta natija"
+
+# ===================== Foydalanuvchi (auth) =====================
+
+msgid "Old password"
+msgstr "Eski parol"
+
+msgid "Password (again)"
+msgstr "Parol (yana bir bor)"
+
+msgid "name"
+msgstr "nomi"
+
+msgid "permission"
+msgstr "ruxsat"
+
+msgid "permissions"
+msgstr "ruxsatlar"
+
+msgid "group"
+msgstr "guruh"
+
+msgid "groups"
+msgstr "guruhlar"
+
+msgid "superuser status"
+msgstr "bosh admin"
+
+msgid "Designates that this user has all permissions without explicitly assigning them."
+msgstr "Belgilansa, foydalanuvchi hamma narsaga ruxsatga ega bo'ladi."
+
+msgid "The groups this user belongs to. A user will get all permissions granted to each of their groups."
+msgstr "Foydalanuvchi qaysi guruhlarga kiradi. U har bir guruhning ruxsatlarini oladi."
+
+msgid "user permissions"
+msgstr "alohida ruxsatlar"
+
+msgid "Specific permissions for this user."
+msgstr "Faqat shu foydalanuvchiga berilgan ruxsatlar."
+
+msgid "username"
+msgstr "login (telefon)"
+
+msgid "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
+msgstr "Majburiy. Ilova foydalanuvchilari uchun telefon raqami: +998XXXXXXXXX."
+
+msgid "A user with that username already exists."
+msgstr "Bu login (telefon) bilan foydalanuvchi allaqachon bor."
+
+msgid "first name"
+msgstr "ism"
+
+msgid "last name"
+msgstr "familiya"
+
+msgid "email address"
+msgstr "email"
+
+msgid "staff status"
+msgstr "admin panelga kirish"
+
+msgid "Designates whether the user can log into this admin site."
+msgstr "Belgilansa, foydalanuvchi admin panelga kira oladi."
+
+msgid "active"
+msgstr "faol (bloklanmagan)"
+
+msgid "Designates whether this user should be treated as active. Unselect this instead of deleting accounts."
+msgstr "Belgini olib tashlasangiz, foydalanuvchi bloklanadi. O'chirish o'rniga shuni ishlating."
+
+msgid "date joined"
+msgstr "ro'yxatdan o'tgan sana"
+
+msgid "user"
+msgstr "foydalanuvchi"
+
+msgid "users"
+msgstr "foydalanuvchilar"
+
+msgid "Logged out"
+msgstr "Chiqildi"
+
+msgid "Enter a valid username. This value may contain only letters, numbers, and @/./+/-/_ characters."
+msgstr "Login faqat harf, raqam va @/./+/-/_ belgilaridan iborat bo'lishi mumkin."
+
+# Parol qoidalari (ro'yxatdan o'tishda ilovaga ham chiqadi)
+
+msgid "This password is too short. It must contain at least %d character."
+msgid_plural "This password is too short. It must contain at least %d characters."
+msgstr[0] "Parol juda qisqa. Kamida %d ta belgi bo'lishi kerak."
+
+msgid "Your password must contain at least %(min_length)d character."
+msgid_plural "Your password must contain at least %(min_length)d characters."
+msgstr[0] "Parol kamida %(min_length)d ta belgidan iborat bo'lishi kerak."
+
+msgid "The password is too similar to the %(verbose_name)s."
+msgstr "Parol shaxsiy ma'lumotga juda o'xshash: %(verbose_name)s."
+
+msgid "Your password can’t be too similar to your other personal information."
+msgstr "Parol shaxsiy ma'lumotlaringizga o'xshash bo'lmasligi kerak."
+
+msgid "This password is too common."
+msgstr "Bu parol juda oddiy, boshqasini tanlang."
+
+msgid "Your password can’t be a commonly used password."
+msgstr "Parol hamma ishlatadigan oddiy parol bo'lmasligi kerak."
+
+msgid "This password is entirely numeric."
+msgstr "Parol faqat raqamlardan iborat bo'lmasligi kerak."
+
+msgid "Your password can’t be entirely numeric."
+msgstr "Parol faqat raqamlardan iborat bo'lmasligi kerak."
+
+# ===================== API (Django REST Framework) =====================
+
+msgid "Auth Token"
+msgstr "API tokenlar"
+
+msgid "Token"
+msgstr "Token"
+
+msgid "Tokens"
+msgstr "Tokenlar"
+
+msgid "Key"
+msgstr "Kalit"
+
+msgid "Created"
+msgstr "Yaratilgan"
+
+msgid "This field is required."
+msgstr "Bu maydon majburiy."
+
+msgid "This field may not be blank."
+msgstr "Bu maydon bo'sh bo'lmasligi kerak."
+
+msgid "This field may not be null."
+msgstr "Bu maydon bo'sh (null) bo'lmasligi kerak."
+
+msgid "A valid integer is required."
+msgstr "Butun son kiriting."
+
+msgid "A valid number is required."
+msgstr "Son kiriting."
+
+msgid "Must be a valid boolean."
+msgstr "true yoki false bo'lishi kerak."
+
+msgid "Not a valid string."
+msgstr "Matn bo'lishi kerak."
+
+msgid "Ensure this field has no more than {max_length} characters."
+msgstr "Ko'pi bilan {max_length} ta belgi bo'lishi kerak."
+
+msgid "Ensure this field has at least {min_length} characters."
+msgstr "Kamida {min_length} ta belgi bo'lishi kerak."
+
+msgid "Ensure this value is greater than or equal to {min_value}."
+msgstr "Qiymat {min_value} dan kam bo'lmasligi kerak."
+
+msgid "Ensure this value is less than or equal to {max_value}."
+msgstr "Qiymat {max_value} dan oshmasligi kerak."
+
+msgid "\"{input}\" is not a valid choice."
+msgstr "\"{input}\" — noto'g'ri tanlov."
+
+msgid "Invalid pk \"{pk_value}\" - object does not exist."
+msgstr "id \"{pk_value}\" topilmadi."
+
+msgid "Incorrect type. Expected pk value, received {data_type}."
+msgstr "Noto'g'ri tur: id (son) kutilgan, {data_type} keldi."
+
+msgid "Invalid data. Expected a dictionary, but got {datatype}."
+msgstr "Noto'g'ri ma'lumot: JSON obyekt kutilgan, {datatype} keldi."
+
+msgid "No file was submitted."
+msgstr "Fayl yuborilmadi."
+
+msgid "The submitted data was not a file. Check the encoding type on the form."
+msgstr "Yuborilgan ma'lumot fayl emas. multipart/form-data ishlatilganini tekshiring."
+
+msgid "The submitted file is empty."
+msgstr "Yuborilgan fayl bo'sh."
+
+msgid "Upload a valid image. The file you uploaded was either not an image or a corrupted image."
+msgstr "To'g'ri rasm yuklang. Yuborilgan fayl rasm emas yoki buzilgan."
+
+msgid "Ensure this filename has at most {max_length} characters (it has {length})."
+msgstr "Fayl nomi ko'pi bilan {max_length} belgi bo'lishi kerak (hozir {length})."
+
+msgid "Authentication credentials were not provided."
+msgstr "Tizimga kirilmagan: token yuborilmadi."
+
+msgid "Incorrect authentication credentials."
+msgstr "Kirish ma'lumotlari noto'g'ri."
+
+msgid "Invalid token."
+msgstr "Token noto'g'ri yoki eskirgan. Qaytadan kiring."
+
+msgid "User inactive or deleted."
+msgstr "Foydalanuvchi bloklangan yoki o'chirilgan."
+
+msgid "Invalid token header. No credentials provided."
+msgstr "Token sarlavhasi noto'g'ri: token yo'q."
+
+msgid "Invalid token header. Token string should not contain spaces."
+msgstr "Token sarlavhasi noto'g'ri: tokenda bo'sh joy bo'lmasligi kerak."
+
+msgid "Invalid token header. Token string should not contain invalid characters."
+msgstr "Token sarlavhasi noto'g'ri: tokenda ruxsat etilmagan belgilar bor."
+
+msgid "You do not have permission to perform this action."
+msgstr "Bu amalni bajarishga ruxsatingiz yo'q."
+
+msgid "Not found."
+msgstr "Topilmadi."
+
+msgid "Malformed request."
+msgstr "So'rov noto'g'ri tuzilgan."
+
+msgid "Method \"{method}\" not allowed."
+msgstr "\"{method}\" metodi bu yerda ishlamaydi."
+
+msgid "Unsupported media type \"{media_type}\" in request."
+msgstr "Qo'llab-quvvatlanmaydigan format: \"{media_type}\"."
+
+msgid "Request was throttled."
+msgstr "So'rovlar juda ko'p. Biroz kuting."
+
+msgid "Invalid page."
+msgstr "Bunday sahifa yo'q."
+
+msgid "A server error occurred."
+msgstr "Serverda xatolik yuz berdi."
+
+msgid "Invalid input."
+msgstr "Noto'g'ri ma'lumot."

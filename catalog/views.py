@@ -1,7 +1,7 @@
 """
 View — so'rov (request) kelganda nima qilishni hal qiladigan qism.
 """
-from django.db.models import IntegerField, OuterRef, Subquery, Value
+from django.db.models import IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -199,8 +199,14 @@ class ListingViewSet(viewsets.ModelViewSet):
             "business__city", "business__category", "business__user",
         ).prefetch_related("images")
 
-        if self.action in ("list", "retrieve"):
+        if self.action == "list":
             return self.filter_public(qs)
+        if self.action == "retrieve":
+            # Hamma ko'ra oladigan e'lonlar + egasi o'zining yashirin/bloklangan e'lonini ham ochadi
+            visible = Q(is_active=True, is_blocked=False, business__user__is_active=True)
+            if self.request.user.is_authenticated:
+                visible |= Q(business__user=self.request.user)
+            return qs.filter(visible)
 
         # Qolgan barcha amallar (tahrirlash, o'chirish, rasm, mine) — faqat o'z e'lonlari.
         # Begona e'lon bu ro'yxatda yo'q, shuning uchun DRF avtomatik 404 qaytaradi.

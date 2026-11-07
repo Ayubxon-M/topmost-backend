@@ -414,6 +414,13 @@ class ListingOwnerTests(BaseAPITest):
         r = self.a.patch(f"/api/listings/{self.listing.pk}/", {"is_active": True}, format="json")
         self.assertEqual(r.status_code, 200)
 
+    def test_owner_can_open_own_hidden_listing_others_cannot(self):
+        Listing.objects.filter(pk=self.listing.pk).update(is_active=False)
+        url = f"/api/listings/{self.listing.pk}/"
+        self.assertEqual(self.a.get(url).status_code, 200)
+        self.assertEqual(self.b.get(url).status_code, 404)
+        self.assertEqual(self.anon.get(url).status_code, 404)
+
     def test_mine_includes_hidden_only_own(self):
         Listing.objects.create(business=self.biz_a, title="Yashirin", is_active=False)
         Listing.objects.create(business=self.biz_b, title="Begona")

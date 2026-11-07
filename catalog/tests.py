@@ -9,7 +9,7 @@ import os
 import shutil
 import tempfile
 from datetime import timedelta
-from io import BytesIO
+from io import BytesIO, StringIO
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -555,6 +555,18 @@ class AdminTests(BaseAPITest):
 # =====================================================================
 # Swagger hujjati
 # =====================================================================
+
+class LoadInitialDataTests(TestCase):
+    def test_loads_once_and_is_repeatable(self):
+        from django.core.management import call_command
+        call_command("load_initial_data", stdout=StringIO())
+        self.assertEqual(City.objects.count(), 19)
+        self.assertEqual(Category.objects.count(), 3)
+        self.assertTrue(City.objects.filter(name="Qo'qon", region__name="Farg'ona viloyati").exists())
+        call_command("load_initial_data", stdout=StringIO())  # ikkinchi marta — takrorlanmaydi
+        self.assertEqual(City.objects.count(), 19)
+        self.assertEqual(Region.objects.count(), 1)
+
 
 class PrivacyPageTests(TestCase):
     def test_privacy_page_public(self):

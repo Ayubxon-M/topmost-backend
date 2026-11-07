@@ -72,6 +72,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# O'zimizning foydalanuvchi modelimiz (catalog/models.py ichidagi User)
+AUTH_USER_MODEL = 'catalog.User'
+
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases

@@ -99,9 +99,12 @@ Bitta maydonga tegishli bo'lmagan xatolar `non_field_errors` yoki `detail` ichid
 | GET | `/api/cities/?region=` | hamma | Shahar/tumanlar |
 | GET | `/api/categories/` | hamma | Kategoriyalar |
 | GET | `/api/tariffs/` | hamma | Pullik tariflar va narxlari |
-| GET | `/api/listings/?city=&category=&region=&q=&page=` | hamma | E'lonlar ro'yxati |
+| GET | `/api/listings/?city=&category=&region=&business=&q=&page=` | hamma | E'lonlar ro'yxati |
 | GET | `/api/listings/{id}/` | hamma | Bitta e'lon |
 | GET | `/api/listings/mine/` | business | Mening e'lonlarim (yashirinlari ham) |
+| GET | `/api/listings/favorites/` | token | Sevimli e'lonlarim ❤️ |
+| POST / DELETE | `/api/listings/{id}/favorite/` | token | Sevimlilarga qo'shish / olib tashlash |
+| GET | `/api/businesses/{id}/` | hamma | Biznes sahifasi |
 | POST | `/api/listings/` | business | E'lon qo'shish |
 | PATCH | `/api/listings/{id}/` | business (o'ziniki) | E'lonni tahrirlash |
 | DELETE | `/api/listings/{id}/` | business (o'ziniki) | E'lonni o'chirish |
@@ -110,6 +113,7 @@ Bitta maydonga tegishli bo'lmagan xatolar `non_field_errors` yoki `detail` ichid
 | GET | `/api/business/me/` | business | Mening biznes profilim |
 | POST | `/api/business/me/` | business | Biznes profil yaratish |
 | PATCH | `/api/business/me/` | business | Biznes profilni tahrirlash |
+| POST / DELETE | `/api/business/me/logo/` | business | Logo yuklash (multipart) / o'chirish |
 
 ---
 
@@ -187,9 +191,17 @@ Keyin tokenni qurilmadan o'chirib, mehmon rejimiga o'ting. Parol noto'g'ri — `
 ```
 
 ### GET `/api/categories/`
+Ikki daraja: **bo'limlar** (`parent: null`) va ularning ichidagi kategoriyalar. Hammasi bitta ro'yxatda, tartiblangan.
 ```json
-[ { "id": 1, "name": "Ustalar" } ]
+[
+  { "id": 1, "name": "Ustalar", "parent": null, "icon": "build" },
+  { "id": 2, "name": "Santexnik", "parent": 1, "icon": "plumbing" },
+  { "id": 3, "name": "Elektrik", "parent": 1, "icon": "electrical" }
+]
 ```
+- Bosh sahifada bo'limlarni ko'rsating; bo'lim bosilsa — `?category=<bo'lim id>` uning ichidagi **barcha** kategoriyalar e'lonlarini qaytaradi.
+- Biznes profilida ichki kategoriyani tanlatgan ma'qul (masalan "Santexnik").
+- `icon` — belgi nomi: `category build plumbing electrical carpenter handyman ac kitchen phone construction paint restaurant cafe fastfood cake store grocery clothes devices home florist barber spa taxi shipping car_repair car_wash school medical pharmacy cleaning camera event computer sport pets`. Noma'lum qiymat kelsa — `category` belgisini ko'rsating.
 
 ### GET `/api/tariffs/`
 ```json
@@ -209,7 +221,8 @@ Filtrlar (hammasi ixtiyoriy, birga ishlatish mumkin):
 | Parametr | Misol | Tavsif |
 |---|---|---|
 | `city` | `?city=1` | Shahar/tuman id |
-| `category` | `?category=2` | Kategoriya id |
+| `category` | `?category=2` | Kategoriya id (bo'lim id'si berilsa — ichidagilar ham) |
+| `business` | `?business=5` | Faqat shu biznes e'lonlari (biznes sahifasi uchun) |
 | `region` | `?region=1` | Viloyat id |
 | `q` | `?q=santexnik` | Sarlavha va izoh bo'yicha qidiruv. Katta-kichik harf farqi yo'q, `o'` `o‘` `oʻ` bir xil hisoblanadi. Bir nechta so'z — hammasi bo'lishi kerak |
 | `page` | `?page=2` | Sahifa raqami |
@@ -228,6 +241,7 @@ Yashirilgan, bloklangan e'lonlar va bloklangan bizneslarning e'lonlari ro'yxatga
       "id": 1,
       "title": "Santexnik xizmati",
       "description": "Qo'qon bo'ylab, 24/7",
+      "price_type": "fixed",
       "price": 50000,
       "is_active": true,
       "is_blocked": false,
@@ -239,16 +253,42 @@ Yashirilgan, bloklangan e'lonlar va bloklangan bizneslarning e'lonlari ro'yxatga
         "phone": "+998901234567",
         "telegram_username": "aliusta",
         "city": { "id": 1, "name": "Qo'qon", "region": 1 },
-        "category": { "id": 1, "name": "Ustalar" }
+        "category": { "id": 2, "name": "Santexnik", "parent": 1, "icon": "plumbing" },
+        "description": "20 yillik tajriba",
+        "address": "Turkiston ko'chasi 12",
+        "logo": "http://10.0.2.2:8000/media/logos/ali.png",
+        "latitude": 40.5286,
+        "longitude": 70.9425,
+        "work_days": "123456",
+        "opens_at": "09:00:00",
+        "closes_at": "18:00:00",
+        "is_24_7": false,
+        "is_open_now": true
       },
       "images": [
         { "id": 1, "image": "http://10.0.2.2:8000/media/listings/photo.jpg", "order": 0 }
-      ]
+      ],
+      "is_favorite": false
     }
   ]
 }
 ```
 `telegram_username` — `@` belgisisiz; biznes Telegram yozmagan bo'lsa `""` (bo'sh) — unda Telegram tugmasini yashiring.
+
+**Narx** — `price_type` ga qarab ko'rsating:
+
+| `price_type` | `price` | Ilovada |
+|---|---|---|
+| `fixed` | 150000 | **150 000 so'm** |
+| `from` | 50000 | **50 000 so'mdan** |
+| `negotiable` | `null` | **Kelishilgan holda** |
+| `free` | `null` | **Bepul** |
+
+**Ish vaqti:** `is_open_now` — `true` (ochiq), `false` (yopiq), `null` (ish vaqti ko'rsatilmagan — hech narsa ko'rsatmang).
+`work_days` — ishlaydigan kunlar: `1` dushanba ... `7` yakshanba (`"123456"` — dushanba–shanba).
+`closes_at` `opens_at` dan kichik bo'lsa — tungi ish (masalan 18:00–02:00). `latitude`/`longitude` `null` bo'lishi mumkin.
+
+`is_favorite` — tizimga kirgan foydalanuvchi bu e'lonni saqlaganmi (mehmonga doim `false`).
 
 > Telegram'ni ochish: `https://t.me/<telegram_username>`. Qo'ng'iroq: `tel:<phone>`.
 
@@ -262,13 +302,14 @@ Biznesning o'z e'lonlari, **yashirilgan** (`is_active: false`) va **admin blokla
 ### POST `/api/listings/` (business)
 Avval biznes profil yaratilgan bo'lishi shart, aks holda `400`.
 ```json
-{ "title": "Santexnik xizmati", "description": "Qo'qon bo'ylab, 24/7", "price": 50000 }
+{ "title": "Santexnik xizmati", "description": "Qo'qon bo'ylab, 24/7", "price_type": "from", "price": 50000 }
 ```
 | Maydon | Majburiy | Tavsif |
 |---|---|---|
 | `title` | ha | 200 belgigacha |
 | `description` | yo'q | |
-| `price` | yo'q | butun son yoki `null` |
+| `price_type` | yo'q | `fixed` / `from` / `negotiable` (standart) / `free` |
+| `price` | `fixed` va `from` uchun ha | butun son, so'mda. `negotiable`/`free` da e'tiborga olinmaydi (`null` saqlanadi) |
 | `is_active` | yo'q | standart `true`. `false` — e'lon yashiriladi |
 
 `is_blocked` ni faqat admin o'zgartiradi (yuborilsa ham e'tiborga olinmaydi).
@@ -300,6 +341,21 @@ Bitta e'longa ko'pi bilan **10 ta** rasm. **201**:
 ### DELETE `/api/listings/{id}/images/{image_id}/` (business, o'ziniki)
 **204**.
 
+### Sevimlilar ❤️ (token kerak — mijoz ham, biznes ham)
+- `POST /api/listings/{id}/favorite/` — saqlash. **201** (yangi) yoki **200** (oldin saqlangan edi).
+- `DELETE /api/listings/{id}/favorite/` — olib tashlash. **204**.
+- `GET /api/listings/favorites/` — saqlanganlar, oxirgi saqlangani birinchi. Sahifalangan, `results` — oddiy e'lon obyektlari.
+
+Yashirilgan yoki bloklangan e'lon ro'yxatdan avtomatik tushib qoladi. Mehmon — `401` (kirish sahifasiga yuboring).
+
+---
+
+## 5.1. Biznes sahifasi (ochiq)
+
+### GET `/api/businesses/{id}/`
+E'lon ichidagi `business` obyekti bilan bir xil (kontaktlar, manzil, logo, ish vaqti, koordinata).
+Biznesning e'lonlari: `GET /api/listings/?business={id}`. Bloklangan biznes — `404`.
+
 ---
 
 ## 6. Biznes profil (faqat `role: business`)
@@ -316,6 +372,18 @@ Bitta e'longa ko'pi bilan **10 ta** rasm. **201**:
 ```
 - `city`, `category` — id (yuqoridagi ma'lumotnomalardan).
 - `phone` — normallashtiriladi. `telegram_username` — `@` bo'lsa olib tashlanadi, ixtiyoriy.
+- Ixtiyoriy biznes sahifasi maydonlari (yaratishda ham, PATCH'da ham):
+
+| Maydon | Misol | Qoida |
+|---|---|---|
+| `description` | `"20 yillik tajriba"` | |
+| `address` | `"Turkiston ko'chasi 12"` | 255 belgigacha |
+| `latitude`, `longitude` | `40.5286`, `70.9425` | ikkalasi birga yoki ikkalasi `null` |
+| `work_days` | `"123456"` | 1–7 raqamlari |
+| `opens_at`, `closes_at` | `"09:00"`, `"18:00"` | ikkalasi birga; bir xil bo'lmasin |
+| `is_24_7` | `true` | `true` bo'lsa soatlar e'tiborga olinmaydi |
+
+`logo` bu yerda faqat o'qiladi — yuklash uchun `/api/business/me/logo/` (pastda).
 
 **201**:
 ```json
@@ -341,6 +409,10 @@ Profil allaqachon bor bo'lsa — `400`.
 
 ### PATCH `/api/business/me/`
 Faqat o'zgargan maydonlar: `{ "name": "Ali usta (Qo'qon)" }` → **200**.
+
+### POST `/api/business/me/logo/` — logo yuklash
+`multipart/form-data`, maydon: `logo` (rasm fayli). **200** — yangilangan profil (`logo` — to'liq URL).
+Eski logo avtomatik o'chiriladi. `DELETE /api/business/me/logo/` — logoni olib tashlash, **204**.
 
 ---
 

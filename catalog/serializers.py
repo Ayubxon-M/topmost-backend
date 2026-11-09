@@ -159,6 +159,13 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         fields = ["id", "tariff", "start", "end"]
 
 
+class MapBusinessSerializer(BusinessPublicSerializer):
+    """Xarita nuqtasi: biznes ma'lumoti + nechta e'loni bor."""
+    listings_count = serializers.IntegerField(read_only=True)
+
+    class Meta(BusinessPublicSerializer.Meta):
+        fields = [*BusinessPublicSerializer.Meta.fields, "listings_count"]
+
 class BusinessProfileSerializer(serializers.ModelSerializer):
     """Biznes egasi o'z profilini yaratishi/tahrirlashi uchun."""
     # Hozir amalda bo'lgan eng yuqori darajali obuna (yo'q bo'lsa null). Faqat o'qish uchun.

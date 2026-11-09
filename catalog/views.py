@@ -1,7 +1,7 @@
 """
 View — so'rov (request) kelganda nima qilishni hal qiladigan qism.
 """
-from django.db.models import Exists, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models import Count, Exists, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -21,6 +21,7 @@ from .permissions import IsBusiness, IsBusinessOrReadOnly
 from .serializers import (
     AuthResponseSerializer, BusinessLogoSerializer, BusinessProfileSerializer, BusinessPublicSerializer, CategorySerializer, ChangePasswordSerializer,
     CitySerializer, DeleteAccountSerializer, ListingImageSerializer, ListingSerializer, LoginSerializer,
+    MapBusinessSerializer,
     RegionSerializer, RegisterSerializer, TariffSerializer, UserSerializer,
 )
 from .utils import normalize_text
@@ -411,14 +412,42 @@ class MyBusinessLogoView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+MAP_LIMIT = 1000  # xaritada bir vaqtda ko'pi bilan shuncha nuqta
+
+
+@extend_schema_view(
+    list=extend_schema(summary="Xarita: joylashuvi belgilangan bizneslar", parameters=[
+        OpenApiParameter("category", OpenApiTypes.INT, description="Kategoriya yoki bo'lim id"),
+        OpenApiParameter("city", OpenApiTypes.INT, description="Shahar/tuman id"),
+    ]),
+    retrieve=extend_schema(summary="Biznes sahifasi"),
+)
 class BusinessViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    GET /api/businesses/{id}/  — biznes sahifasi (hammaga ochiq).
+    GET /api/businesses/            — xarita uchun: koordinatasi bor bizneslar (?category=, ?city=), sahifalanmaydi
+    GET /api/businesses/{id}/       — biznes sahifasi (hammaga ochiq)
     E'lonlari: GET /api/listings/?business={id}
     """
-    serializer_class = BusinessPublicSerializer
     permission_classes = [AllowAny]
+    pagination_class = None  # xaritaga hammasi birdan kerak (MAP_LIMIT bilan cheklangan)
+
+    def get_serializer_class(self):
+        return MapBusinessSerializer if self.action == "list" else BusinessPublicSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return BusinessProfile.objects.none()
         # Bloklangan foydalanuvchining biznesi ko'rinmaydi
-        return BusinessProfile.objects.filter(user__is_active=True).select_related("city", "category")
+        qs = BusinessProfile.objects.filter(user__is_active=True).select_related("city", "category")
+        if self.action != "list":
+            return qs
+        qs = qs.filter(latitude__isnull=False, longitude__isnull=False).annotate(
+            listings_count=Count("listings", filter=Q(listings__is_active=True, listings__is_blocked=False)),
+        )
+        category = int_param(self.request, "category")
+        if category is not None:
+            qs = qs.filter(Q(category_id=category) | Q(category__parent_id=category))
+        city = int_param(self.request, "city")
+        if city is not None:
+            qs = qs.filter(city_id=city)
+        return qs.order_by("-id")[:MAP_LIMIT]

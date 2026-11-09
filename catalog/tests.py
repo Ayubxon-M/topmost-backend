@@ -322,6 +322,37 @@ class BusinessPageTests(BaseAPITest):
         User.objects.filter(pk=self.user.pk).update(is_active=False)
         self.assertEqual(self.anon.get(f"/api/businesses/{self.biz.pk}/").status_code, 404)
 
+class MapTests(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.santexnik = Category.objects.create(name="Santexnik", parent=self.usta)
+        self.u1, self.on_map = self.make_business("+998901000001", "Xaritada", category=self.santexnik)
+        BusinessProfile.objects.filter(pk=self.on_map.pk).update(latitude=40.53, longitude=70.94)
+        _, self.no_coords = self.make_business("+998901000002", "Koordinatasiz")
+        _, self.cafe = self.make_business("+998901000003", "Kafe", city=self.fargona, category=self.kafe)
+        BusinessProfile.objects.filter(pk=self.cafe.pk).update(latitude=40.38, longitude=71.78)
+        Listing.objects.create(business=self.on_map, title="Ko'rinadi")
+        Listing.objects.create(business=self.on_map, title="Yashirin", is_active=False)
+
+    def names(self, q=""):
+        r = self.anon.get("/api/businesses/" + q)
+        self.assertEqual(r.status_code, 200)
+        return sorted(b["name"] for b in r.data)
+
+    def test_only_with_coordinates_not_paginated(self):
+        self.assertEqual(self.names(), ["Kafe", "Xaritada"])
+        item = next(b for b in self.anon.get("/api/businesses/").data if b["name"] == "Xaritada")
+        self.assertEqual((item["latitude"], item["longitude"]), (40.53, 70.94))
+        self.assertEqual(item["listings_count"], 1)  # yashirin e'lon sanalmaydi
+
+    def test_filters(self):
+        self.assertEqual(self.names(f"?category={self.usta.pk}"), ["Xaritada"])  # bo'lim — ichidagilar bilan
+        self.assertEqual(self.names(f"?city={self.fargona.pk}"), ["Kafe"])
+
+    def test_blocked_hidden(self):
+        User.objects.filter(pk=self.u1.pk).update(is_active=False)
+        self.assertEqual(self.names(), ["Kafe"])
+
 class PriceTypeTests(BaseAPITest):
     def setUp(self):
         super().setUp()

@@ -104,6 +104,7 @@ Bitta maydonga tegishli bo'lmagan xatolar `non_field_errors` yoki `detail` ichid
 | GET | `/api/listings/mine/` | business | Mening e'lonlarim (yashirinlari ham) |
 | GET | `/api/listings/favorites/` | token | Sevimli e'lonlarim ❤️ |
 | POST / DELETE | `/api/listings/{id}/favorite/` | token | Sevimlilarga qo'shish / olib tashlash |
+| GET | `/api/businesses/?category=&city=` | hamma | Xarita: koordinatasi bor bizneslar |
 | GET | `/api/businesses/{id}/` | hamma | Biznes sahifasi |
 | POST | `/api/listings/` | business | E'lon qo'shish |
 | PATCH | `/api/listings/{id}/` | business (o'ziniki) | E'lonni tahrirlash |
@@ -350,7 +351,12 @@ Yashirilgan yoki bloklangan e'lon ro'yxatdan avtomatik tushib qoladi. Mehmon —
 
 ---
 
-## 5.1. Biznes sahifasi (ochiq)
+## 5.1. Biznes sahifasi va xarita (ochiq)
+
+### GET `/api/businesses/` — xarita
+Koordinatasi (`latitude`, `longitude`) belgilangan bizneslar, **sahifalanmaydi** (ko'pi bilan 1000 ta).
+Filtrlar: `?category=` (bo'lim id'si — ichidagilar bilan), `?city=`. Har biri — biznes sahifasi obyekti
++ `listings_count` (ko'rinib turgan e'lonlar soni).
 
 ### GET `/api/businesses/{id}/`
 E'lon ichidagi `business` obyekti bilan bir xil (kontaktlar, manzil, logo, ish vaqti, koordinata).

@@ -356,6 +356,50 @@ class PriceTypeTests(BaseAPITest):
         r = self.api.patch(f"/api/listings/{listing_id}/", {"price_type": "fixed"}, format="json")
         self.assertEqual(r.status_code, 400)  # narxsiz "aniq narx" bo'lmaydi
 
+class FavoriteTests(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        _, self.biz = self.make_business("+998901000001")
+        self.l1 = Listing.objects.create(business=self.biz, title="Birinchi")
+        self.l2 = Listing.objects.create(business=self.biz, title="Ikkinchi")
+        self.client_user = User.objects.create_user("+998901000009", password=PASSWORD)
+        self.api = self.client_for(self.client_user)
+
+    def fav(self, listing, method="post"):
+        return getattr(self.api, method)(f"/api/listings/{listing.pk}/favorite/")
+
+    def test_add_list_remove(self):
+        self.assertEqual(self.fav(self.l1).status_code, 201)
+        self.assertEqual(self.fav(self.l1).status_code, 200)  # takroriy — xato emas
+        self.fav(self.l2)
+        r = self.api.get("/api/listings/favorites/")
+        self.assertEqual([x["title"] for x in r.data["results"]], ["Ikkinchi", "Birinchi"])  # oxirgisi birinchi
+        self.assertTrue(all(x["is_favorite"] for x in r.data["results"]))
+        self.assertEqual(self.fav(self.l1, "delete").status_code, 204)
+        self.assertEqual(self.api.get("/api/listings/favorites/").data["count"], 1)
+
+    def test_is_favorite_flag_in_list_and_detail(self):
+        self.fav(self.l1)
+        flags = {x["title"]: x["is_favorite"] for x in self.api.get("/api/listings/").data["results"]}
+        self.assertEqual(flags, {"Birinchi": True, "Ikkinchi": False})
+        self.assertTrue(self.api.get(f"/api/listings/{self.l1.pk}/").data["is_favorite"])
+        self.assertFalse(self.anon.get(f"/api/listings/{self.l1.pk}/").data["is_favorite"])  # mehmon
+
+    def test_guest_cannot_favorite(self):
+        self.assertEqual(self.anon.post(f"/api/listings/{self.l1.pk}/favorite/").status_code, 401)
+        self.assertEqual(self.anon.get("/api/listings/favorites/").status_code, 401)
+
+    def test_hidden_listing_cannot_be_saved_and_drops_from_list(self):
+        self.fav(self.l1)
+        Listing.objects.filter(pk=self.l1.pk).update(is_active=False)
+        self.assertEqual(self.api.get("/api/listings/favorites/").data["count"], 0)
+        self.assertEqual(self.fav(self.l1).status_code, 404)
+
+    def test_favorites_are_private(self):
+        self.fav(self.l1)
+        other = User.objects.create_user("+998901000008", password=PASSWORD)
+        self.assertEqual(self.client_for(other).get("/api/listings/favorites/").data["count"], 0)
+
 class CategoryTreeTests(BaseAPITest):
     def test_api_returns_parent_and_icon(self):
         santexnik = Category.objects.create(name="Santexnik", parent=self.usta, icon="plumbing")

@@ -229,15 +229,26 @@ class ListingImageSerializer(serializers.ModelSerializer):
 class ListingSerializer(serializers.ModelSerializer):
     business = BusinessPublicSerializer(read_only=True)
     images = ListingImageSerializer(many=True, read_only=True)
+    # Tizimga kirgan foydalanuvchi bu e'lonni ❤️ saqlaganmi (mehmonga doim false)
+    is_favorite = serializers.SerializerMethodField()
 
     class Meta:
         model = Listing
         fields = [
             "id", "title", "description", "price_type", "price", "is_active", "is_blocked",
-            "created_at", "updated_at", "business", "images",
+            "created_at", "updated_at", "business", "images", "is_favorite",
         ]
         # is_blocked'ni faqat admin o'zgartiradi
         read_only_fields = ["is_blocked", "created_at", "updated_at"]
+
+    def get_is_favorite(self, listing) -> bool:
+        annotated = getattr(listing, "favorited", None)  # ro'yxatda bitta so'rov bilan hisoblanadi
+        if annotated is not None:
+            return annotated
+        request = self.context.get("request")
+        if not (request and request.user.is_authenticated):
+            return False
+        return listing.favorites.filter(user=request.user).exists()
 
     def validate(self, attrs):
         # Narx turi ko'rsatilmay, faqat narx yuborilsa (eski ilova) — "aniq narx" deb hisoblaymiz.

@@ -204,7 +204,7 @@ class ListingStatusFilter(admin.SimpleListFilter):
 
 @admin.register(Listing)
 class ListingAdmin(admin.ModelAdmin):
-    list_display = ("photo", "title", "business", "price_display", "status_badge", "created_at")
+    list_display = ("photo", "title", "business", "price_display", "status_badge", "favorites_count", "created_at")
     list_display_links = ("photo", "title")
     list_filter = (ListingStatusFilter, "price_type", "is_active", "is_blocked", "business__city", "business__category")
     search_fields = ("title", "description", "business__name")
@@ -226,12 +226,16 @@ class ListingAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related("images")
+        return super().get_queryset(request).prefetch_related("images").annotate(_favorites=Count("favorites"))
 
     @admin.display(description="Rasm")
     def photo(self, obj):
         images = list(obj.images.all())
         return thumb(images[0].image if images else None)
+
+    @admin.display(description="❤️", ordering="_favorites")
+    def favorites_count(self, obj):
+        return obj._favorites
 
     @admin.display(description="Narx", ordering="price")
     def price_display(self, obj):

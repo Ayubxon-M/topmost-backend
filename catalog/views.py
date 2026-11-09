@@ -1,7 +1,7 @@
 """
 View — so'rov (request) kelganda nima qilishni hal qiladigan qism.
 """
-from django.db.models import IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models import Exists, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -16,7 +16,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription, Tariff
+from .models import BusinessProfile, Category, City, Favorite, Listing, ListingImage, Region, Subscription, Tariff
 from .permissions import IsBusiness, IsBusinessOrReadOnly
 from .serializers import (
     AuthResponseSerializer, BusinessLogoSerializer, BusinessProfileSerializer, BusinessPublicSerializer, CategorySerializer, ChangePasswordSerializer,
@@ -192,6 +192,8 @@ class ListingViewSet(viewsets.ModelViewSet):
     GET    /api/listings/              — hamma uchun (?city=, ?category=, ?region=, ?q=)
     GET    /api/listings/{id}/         — hamma uchun
     GET    /api/listings/mine/         — biznes: o'z e'lonlari (yashirinlari ham)
+    GET    /api/listings/favorites/    — tizimga kirgan: sevimli e'lonlari
+    POST/DELETE /api/listings/{id}/favorite/ — sevimlilarga qo'shish / olib tashlash
     POST   /api/listings/              — biznes: yangi e'lon
     PATCH  /api/listings/{id}/         — biznes: faqat o'z e'loni
     DELETE /api/listings/{id}/         — biznes: faqat o'z e'loni
@@ -207,9 +209,15 @@ class ListingViewSet(viewsets.ModelViewSet):
         qs = Listing.objects.select_related(
             "business__city", "business__category", "business__user",
         ).prefetch_related("images")
+        user = self.request.user
+        if user.is_authenticated:
+            # "is_favorite" — har e'lon uchun alohida so'rov emas, bitta so'rovda
+            qs = qs.annotate(favorited=Exists(Favorite.objects.filter(user=user, listing=OuterRef("pk"))))
 
         if self.action == "list":
             return self.filter_public(qs)
+        if self.action in ("favorite", "favorites"):
+            return qs.filter(is_active=True, is_blocked=False, business__user__is_active=True)
         if self.action == "retrieve":
             # Hamma ko'ra oladigan e'lonlar + egasi o'zining yashirin/bloklangan e'lonini ham ochadi
             visible = Q(is_active=True, is_blocked=False, business__user__is_active=True)
@@ -275,6 +283,27 @@ class ListingViewSet(viewsets.ModelViewSet):
     def mine(self, request):
         page = self.paginate_queryset(self.get_queryset())
         return self.get_paginated_response(self.get_serializer(page, many=True).data)
+
+    @extend_schema(summary="Sevimli e'lonlarim (❤️)")
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def favorites(self, request):
+        # Oxirgi saqlangani birinchi. Keyin yashirilgan/bloklangan e'lonlar ro'yxatdan tushib qoladi.
+        last_saved = Favorite.objects.filter(user=request.user, listing=OuterRef("pk")).values("created_at")[:1]
+        qs = (self.get_queryset().filter(favorites__user=request.user)
+              .annotate(saved_at=Subquery(last_saved)).order_by("-saved_at"))
+        page = self.paginate_queryset(qs)
+        return self.get_paginated_response(self.get_serializer(page, many=True).data)
+
+    @extend_schema(summary="Sevimlilarga qo'shish (POST) yoki olib tashlash (DELETE)", request=None,
+                   responses={200: None, 201: None, 204: None})
+    @action(detail=True, methods=["post", "delete"], permission_classes=[IsAuthenticated])
+    def favorite(self, request, pk=None):
+        listing = self.get_object()  # faqat ko'rinib turgan e'lonni saqlash mumkin
+        if request.method == "DELETE":
+            Favorite.objects.filter(user=request.user, listing=listing).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        _, created = Favorite.objects.get_or_create(user=request.user, listing=listing)
+        return Response({"is_favorite": True}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     @extend_schema(summary="E'longa rasm yuklash (multipart)",
                    request={"multipart/form-data": ListingImageSerializer},

@@ -229,6 +229,22 @@ class Listing(models.Model):
         return self.title
 
 
+class Favorite(models.Model):
+    """Foydalanuvchi saqlab qo'ygan (❤️) e'lon."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="favorites", verbose_name="Foydalanuvchi")
+    listing = models.ForeignKey("Listing", on_delete=models.CASCADE, related_name="favorites", verbose_name="E'lon")
+    created_at = models.DateTimeField("Saqlangan", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Sevimli"
+        verbose_name_plural = "Sevimlilar"
+        ordering = ["-created_at"]
+        constraints = [models.UniqueConstraint(fields=["user", "listing"], name="unique_favorite")]
+
+    def __str__(self):
+        return f"{self.user} ❤ {self.listing}"
+
+
 class ListingImage(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="images", verbose_name="E'lon")
     image = models.ImageField("Rasm", upload_to="listings/")

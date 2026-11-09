@@ -121,7 +121,8 @@ class CitySerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ["id", "name"]
+        # parent: null — bo'lim; aks holda bo'lim id'si. icon — ilovadagi belgi nomi.
+        fields = ["id", "name", "parent", "icon"]
 
 
 # ---------- Biznes profil ----------

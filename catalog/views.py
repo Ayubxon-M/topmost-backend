@@ -156,7 +156,7 @@ class CityViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """GET /api/categories/"""
+    """GET /api/categories/  — hammasi bitta ro'yxatda: bo'limlar (parent=null) va ularning ichidagilar"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [AllowAny]
@@ -230,7 +230,8 @@ class ListingViewSet(viewsets.ModelViewSet):
             qs = qs.filter(business__city_id=city)
         category = int_param(self.request, "category")
         if category is not None:
-            qs = qs.filter(business__category_id=category)
+            # Bo'lim tanlansa — uning ichidagi barcha kategoriyalar ham ("Ustalar" -> santexnik, elektrik...)
+            qs = qs.filter(Q(business__category_id=category) | Q(business__category__parent_id=category))
         region = int_param(self.request, "region")
         if region is not None:
             qs = qs.filter(business__city__region_id=region)

@@ -56,15 +56,82 @@ class City(models.Model):
 
 
 class Category(models.Model):
-    name = models.CharField("Kategoriya", max_length=100, unique=True)
+    """
+    Kategoriya. Ikki daraja: bo'lim (parent bo'sh) va uning ichidagi kategoriyalar.
+    Masalan: "Ustalar" -> "Santexnik", "Elektrik". Yangi soha qo'shish uchun kod kerak emas —
+    admin panelda kategoriya qo'shib, ikonkasini tanlash kifoya.
+    """
+
+    class Icon(models.TextChoices):
+        # Qiymat — ilovadagi belgi nomi (Flutter), yozuv — admin panel uchun
+        CATEGORY = "category", "▦ Umumiy"
+        BUILD = "build", "🔧 Usta / ta'mir"
+        PLUMBING = "plumbing", "🚰 Santexnika"
+        ELECTRICAL = "electrical", "⚡ Elektr"
+        CARPENTER = "carpenter", "🪚 Duradgorlik"
+        HANDYMAN = "handyman", "🛠 Turli ishlar"
+        AC = "ac", "❄️ Konditsioner"
+        KITCHEN = "kitchen", "🍳 Maishiy texnika"
+        PHONE = "phone", "📱 Telefon"
+        CONSTRUCTION = "construction", "🏗 Qurilish"
+        PAINT = "paint", "🎨 Bo'yoq"
+        RESTAURANT = "restaurant", "🍽 Restoran"
+        CAFE = "cafe", "☕ Kafe"
+        FASTFOOD = "fastfood", "🍔 Fast-food"
+        CAKE = "cake", "🍰 Shirinlik"
+        STORE = "store", "🏪 Do'kon"
+        GROCERY = "grocery", "🛒 Oziq-ovqat"
+        CLOTHES = "clothes", "👕 Kiyim"
+        DEVICES = "devices", "💻 Elektronika"
+        HOME = "home", "🏠 Uy-ro'zg'or"
+        FLORIST = "florist", "💐 Gullar"
+        BARBER = "barber", "✂️ Sartarosh"
+        SPA = "spa", "💆 Go'zallik"
+        TAXI = "taxi", "🚕 Taxi"
+        SHIPPING = "shipping", "🚚 Yuk tashish"
+        CAR_REPAIR = "car_repair", "🔩 Avtoservis"
+        CAR_WASH = "car_wash", "🚿 Avtomoyka"
+        SCHOOL = "school", "🎓 Ta'lim"
+        MEDICAL = "medical", "🏥 Tibbiyot"
+        PHARMACY = "pharmacy", "💊 Dorixona"
+        CLEANING = "cleaning", "🧹 Tozalash"
+        CAMERA = "camera", "📷 Foto / video"
+        EVENT = "event", "🎉 Tadbirlar"
+        COMPUTER = "computer", "🖥 Kompyuter"
+        SPORT = "sport", "🏋️ Sport"
+        PETS = "pets", "🐾 Hayvonlar"
+
+    name = models.CharField("Nomi", max_length=100)
+    parent = models.ForeignKey(
+        "self", on_delete=models.PROTECT, null=True, blank=True, related_name="children",
+        verbose_name="Bo'lim", help_text="Bo'sh qoldirilsa — bu kategoriya o'zi bo'lim bo'ladi (masalan «Ustalar»)",
+    )
+    icon = models.CharField("Ikonka", max_length=20, choices=Icon.choices, default=Icon.CATEGORY)
+    order = models.PositiveSmallIntegerField("Tartib", default=0, help_text="Kichik raqam — ro'yxatda oldinroq")
 
     class Meta:
         verbose_name = "Kategoriya"
         verbose_name_plural = "Kategoriyalar"
-        ordering = ["name"]
+        ordering = ["order", "name"]
+        constraints = [
+            # Bitta bo'lim ichida nomlar takrorlanmaydi; bo'limlar orasida ham
+            models.UniqueConstraint(fields=["parent", "name"], name="unique_category_in_parent"),
+            models.UniqueConstraint(fields=["name"], condition=models.Q(parent__isnull=True),
+                                    name="unique_top_category"),
+        ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.parent_id:
+            if self.parent_id == self.pk:
+                raise ValidationError({"parent": "Kategoriya o'zining bo'limi bo'la olmaydi."})
+            if self.parent.parent_id:
+                raise ValidationError({"parent": "Faqat ikki daraja: bo'lim tanlang, kategoriya emas."})
+            if self.pk and self.children.exists():
+                raise ValidationError({"parent": "Bu kategoriyaning o'z ichida kategoriyalari bor — u bo'lim bo'lib qolishi kerak."})
 
     def __str__(self):
-        return self.name
+        return f"{self.parent.name} › {self.name}" if self.parent_id else self.name
 
 
 class BusinessProfile(models.Model):

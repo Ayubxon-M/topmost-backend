@@ -229,6 +229,39 @@ class ReferenceTests(BaseAPITest):
 # Biznes profil
 # =====================================================================
 
+class CategoryTreeTests(BaseAPITest):
+    def test_api_returns_parent_and_icon(self):
+        santexnik = Category.objects.create(name="Santexnik", parent=self.usta, icon="plumbing")
+        data = {c["id"]: c for c in self.anon.get("/api/categories/").data}
+        self.assertIsNone(data[self.usta.pk]["parent"])
+        self.assertEqual(data[santexnik.pk]["parent"], self.usta.pk)
+        self.assertEqual(data[santexnik.pk]["icon"], "plumbing")
+
+    def test_section_filter_includes_children(self):
+        santexnik = Category.objects.create(name="Santexnik", parent=self.usta)
+        elektrik = Category.objects.create(name="Elektrik", parent=self.usta)
+        for phone, cat, title in [("+998901000001", santexnik, "Quvur"), ("+998901000002", elektrik, "Rozetka"),
+                                  ("+998901000003", self.kafe, "Osh")]:
+            _, biz = self.make_business(phone, category=cat)
+            Listing.objects.create(business=biz, title=title)
+        titles = lambda q: sorted(x["title"] for x in self.anon.get("/api/listings/" + q).data["results"])
+        self.assertEqual(titles(f"?category={self.usta.pk}"), ["Quvur", "Rozetka"])  # bo'lim — ichidagilar bilan
+        self.assertEqual(titles(f"?category={santexnik.pk}"), ["Quvur"])
+
+    def test_only_two_levels(self):
+        from django.core.exceptions import ValidationError
+        santexnik = Category.objects.create(name="Santexnik", parent=self.usta)
+        with self.assertRaises(ValidationError):
+            Category(name="Quvur", parent=santexnik).full_clean()
+        with self.assertRaises(ValidationError):  # ichida kategoriyasi bor bo'limni boshqa bo'limga qo'yib bo'lmaydi
+            self.usta.parent = self.kafe
+            self.usta.full_clean()
+
+    def test_same_name_allowed_in_different_sections(self):
+        Category.objects.create(name="Boshqa", parent=self.usta)
+        Category.objects.create(name="Boshqa", parent=self.kafe)
+        self.assertEqual(Category.objects.filter(name="Boshqa").count(), 2)
+
 class BusinessProfileTests(BaseAPITest):
     def setUp(self):
         super().setUp()
@@ -563,7 +596,9 @@ class LoadInitialDataTests(TestCase):
         from django.core.management import call_command
         call_command("load_initial_data", stdout=StringIO())
         self.assertEqual(City.objects.count(), 19)
-        self.assertEqual(Category.objects.count(), 3)
+        self.assertEqual(Category.objects.filter(parent=None).count(), 9)  # bo'limlar
+        santexnik = Category.objects.get(name="Santexnik")
+        self.assertEqual((santexnik.parent.name, santexnik.icon), ("Ustalar", "plumbing"))
         self.assertTrue(City.objects.filter(name="Qo'qon", region__name="Farg'ona viloyati").exists())
         call_command("load_initial_data", stdout=StringIO())  # ikkinchi marta — takrorlanmaydi
         self.assertEqual(City.objects.count(), 19)

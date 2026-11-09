@@ -115,7 +115,7 @@ class SubscriptionInline(admin.TabularInline):
 @admin.register(BusinessProfile)
 class BusinessProfileAdmin(admin.ModelAdmin):
     list_display = ("name", "user", "phone", "telegram_link", "city", "category", "listings_total", "tariff_badge")
-    list_filter = ("city__region", "city", "category")
+    list_filter = ("city__region", "city", "category__parent", "category")
     search_fields = ("name", "phone", "user__username", "telegram_username")
     list_select_related = ("user", "city", "category")
     autocomplete_fields = ("user",)
@@ -352,13 +352,47 @@ class CityAdmin(admin.ModelAdmin):
         return obj._businesses
 
 
+class CategoryLevelFilter(admin.SimpleListFilter):
+    title = "darajasi"
+    parameter_name = "daraja"
+
+    def lookups(self, request, model_admin):
+        return [("top", "Bo'limlar"), ("sub", "Ichki kategoriyalar")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "top":
+            return queryset.filter(parent__isnull=True)
+        if self.value() == "sub":
+            return queryset.filter(parent__isnull=False)
+        return queryset
+
+
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "business_count")
-    search_fields = ("name",)
+    list_display = ("tree_name", "icon", "order", "business_count")
+    list_editable = ("icon", "order")
+    list_filter = (CategoryLevelFilter, "parent")
+    search_fields = ("name", "parent__name")
+    list_select_related = ("parent",)
+    fields = ("name", "parent", "icon", "order")
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_businesses=Count("businessprofile"))
+
+    def get_ordering(self, request):
+        # Bo'lim, keyin uning ichidagilar — daraxt ko'rinishida
+        return ("parent__order", "parent__name", "parent_id", "order", "name")
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "parent":
+            kwargs["queryset"] = Category.objects.filter(parent__isnull=True)  # faqat bo'limlar
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    @admin.display(description="Kategoriya", ordering="name")
+    def tree_name(self, obj):
+        if obj.parent_id:
+            return format_html('<span style="color:var(--body-quiet-color)">{} ›</span> {}', obj.parent.name, obj.name)
+        return format_html("<b>{}</b>", obj.name)
 
     @admin.display(description="Bizneslar", ordering="_businesses")
     def business_count(self, obj):

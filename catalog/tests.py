@@ -229,6 +229,99 @@ class ReferenceTests(BaseAPITest):
 # Biznes profil
 # =====================================================================
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA)
+class BusinessPageTests(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.user, self.biz = self.make_business("+998901000001", "Ali usta")
+        self.api = self.client_for(self.user)
+
+    def at(self, weekday, hour, minute=0):
+        """2026-11-09 — dushanba. weekday: 1=dushanba ... 7=yakshanba."""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        return datetime(2026, 11, 8 + weekday, hour, minute, tzinfo=ZoneInfo("Asia/Tashkent"))
+
+    def test_open_hours_regular_day(self):
+        from datetime import time
+        self.biz.opens_at, self.biz.closes_at, self.biz.work_days = time(9), time(18), "123456"
+        self.assertTrue(self.biz.is_open_at(self.at(1, 9)))
+        self.assertTrue(self.biz.is_open_at(self.at(6, 17, 59)))
+        self.assertFalse(self.biz.is_open_at(self.at(1, 18)))
+        self.assertFalse(self.biz.is_open_at(self.at(1, 8, 59)))
+        self.assertFalse(self.biz.is_open_at(self.at(7, 12)))  # yakshanba — dam olish
+
+    def test_open_hours_overnight(self):
+        from datetime import time
+        self.biz.opens_at, self.biz.closes_at, self.biz.work_days = time(18), time(2), "5"  # faqat juma kechasi
+        self.assertTrue(self.biz.is_open_at(self.at(5, 23)))
+        self.assertTrue(self.biz.is_open_at(self.at(6, 1, 30)))  # shanba tongi — juma kechasining davomi
+        self.assertFalse(self.biz.is_open_at(self.at(6, 2)))
+        self.assertFalse(self.biz.is_open_at(self.at(5, 1)))  # juma tongi — payshanba ishlamaydi
+
+    def test_open_hours_unknown_and_24_7(self):
+        self.assertIsNone(self.biz.is_open_at(self.at(1, 12)))
+        self.biz.is_24_7 = True
+        self.assertTrue(self.biz.is_open_at(self.at(7, 3)))
+
+    def test_update_page_fields(self):
+        r = self.api.patch("/api/business/me/", {
+            "description": "20 yillik tajriba", "address": "Turkiston ko'chasi 12",
+            "latitude": 40.5286, "longitude": 70.9425, "work_days": "654321",
+            "opens_at": "09:00", "closes_at": "18:00",
+        }, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["work_days"], "123456")  # tartiblandi
+        self.assertEqual(r.data["latitude"], 40.5286)
+        self.assertIn(r.data["is_open_now"], (True, False))
+
+    def test_validation(self):
+        bad = [
+            {"latitude": 40.5},                               # uzunliksiz
+            {"latitude": 140, "longitude": 70},               # noto'g'ri koordinata
+            {"opens_at": "09:00"},                            # yopilish vaqtisiz
+            {"opens_at": "09:00", "closes_at": "09:00"},      # bir xil
+            {"work_days": "1238"},                            # 8-kun yo'q
+        ]
+        for data in bad:
+            self.assertEqual(self.api.patch("/api/business/me/", data, format="json").status_code, 400, data)
+
+    def test_logo_upload_replace_delete(self):
+        import os
+        r = self.api.post("/api/business/me/logo/", {"logo": make_image("a.png")}, format="multipart")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["logo"].startswith("http://testserver/media/logos/"))
+        first = BusinessProfile.objects.get(pk=self.biz.pk).logo.path
+        self.api.post("/api/business/me/logo/", {"logo": make_image("b.png")}, format="multipart")
+        self.assertFalse(os.path.exists(first))  # eski logo o'chirildi
+        self.assertEqual(self.api.delete("/api/business/me/logo/").status_code, 204)
+        self.assertFalse(BusinessProfile.objects.get(pk=self.biz.pk).logo)
+        bad = SimpleUploadedFile("x.png", b"rasm emas", content_type="image/png")
+        self.assertEqual(self.api.post("/api/business/me/logo/", {"logo": bad}, format="multipart").status_code, 400)
+
+    def test_logo_not_writable_via_patch(self):
+        r = self.api.patch("/api/business/me/", {"logo": "hack.png"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(BusinessProfile.objects.get(pk=self.biz.pk).logo)
+
+    def test_public_business_page_and_its_listings(self):
+        Listing.objects.create(business=self.biz, title="Quvur")
+        _, other = self.make_business("+998901000002", "Boshqa")
+        Listing.objects.create(business=other, title="Begona")
+        r = self.anon.get(f"/api/businesses/{self.biz.pk}/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["name"], "Ali usta")
+        self.assertEqual(r.data["phone"], "+998901000001")
+        self.assertIn("is_open_now", r.data)
+        titles = [x["title"] for x in self.anon.get(f"/api/listings/?business={self.biz.pk}").data["results"]]
+        self.assertEqual(titles, ["Quvur"])
+        # Listing ichidagi biznesda ham sahifa maydonlari bor
+        self.assertIn("address", self.anon.get("/api/listings/").data["results"][0]["business"])
+
+    def test_blocked_business_page_hidden(self):
+        User.objects.filter(pk=self.user.pk).update(is_active=False)
+        self.assertEqual(self.anon.get(f"/api/businesses/{self.biz.pk}/").status_code, 404)
+
 class CategoryTreeTests(BaseAPITest):
     def test_api_returns_parent_and_icon(self):
         santexnik = Category.objects.create(name="Santexnik", parent=self.usta, icon="plumbing")

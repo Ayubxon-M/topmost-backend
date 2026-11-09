@@ -127,14 +127,22 @@ class CategorySerializer(serializers.ModelSerializer):
 
 # ---------- Biznes profil ----------
 
+BUSINESS_PAGE_FIELDS = [
+    "description", "address", "logo", "latitude", "longitude",
+    "work_days", "opens_at", "closes_at", "is_24_7", "is_open_now",
+]
+
+
 class BusinessPublicSerializer(serializers.ModelSerializer):
-    """E'lon ichida ko'rinadigan biznes ma'lumoti. Kontaktlar hammaga (mehmonga ham) ochiq."""
+    """Biznes sahifasi va e'lon ichidagi biznes ma'lumoti. Kontaktlar hammaga (mehmonga ham) ochiq."""
     city = CitySerializer(read_only=True)
     category = CategorySerializer(read_only=True)
+    # true — ochiq, false — yopiq, null — ish vaqti ko'rsatilmagan
+    is_open_now = serializers.BooleanField(read_only=True, allow_null=True)
 
     class Meta:
         model = BusinessProfile
-        fields = ["id", "name", "phone", "telegram_username", "city", "category"]
+        fields = ["id", "name", "phone", "telegram_username", "city", "category", *BUSINESS_PAGE_FIELDS]
 
 
 class TariffSerializer(serializers.ModelSerializer):
@@ -156,10 +164,34 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
     # Hozir amalda bo'lgan eng yuqori darajali obuna (yo'q bo'lsa null). Faqat o'qish uchun.
     subscription = serializers.SerializerMethodField()
 
+    is_open_now = serializers.BooleanField(read_only=True, allow_null=True)
+
     class Meta:
         model = BusinessProfile
-        fields = ["id", "name", "phone", "telegram_username", "city", "category", "created_at", "subscription"]
-        read_only_fields = ["created_at"]
+        fields = ["id", "name", "phone", "telegram_username", "city", "category", *BUSINESS_PAGE_FIELDS,
+                  "created_at", "subscription"]
+        # Logo alohida yuklanadi: POST /api/business/me/logo/ (multipart)
+        read_only_fields = ["created_at", "logo"]
+
+    def validate_work_days(self, value):
+        days = "".join(sorted(set(value)))
+        if any(d not in "1234567" for d in days):
+            raise serializers.ValidationError("Faqat 1–7 raqamlari: 1 — dushanba, 7 — yakshanba.")
+        return days
+
+    def validate(self, attrs):
+        current = self.instance
+        get = lambda name: attrs[name] if name in attrs else getattr(current, name, None)
+        lat, lng = get("latitude"), get("longitude")
+        if (lat is None) != (lng is None):
+            raise serializers.ValidationError({"latitude": "Kenglik va uzunlik birga kiritiladi."})
+        if lat is not None and not (-90 <= lat <= 90 and -180 <= lng <= 180):
+            raise serializers.ValidationError({"latitude": "Koordinata noto'g'ri."})
+        if (get("opens_at") is None) != (get("closes_at") is None):
+            raise serializers.ValidationError({"opens_at": "Ochilish va yopilish vaqti birga kiritiladi."})
+        if get("opens_at") is not None and get("opens_at") == get("closes_at"):
+            raise serializers.ValidationError({"closes_at": "Yopilish vaqti ochilishdan farq qilishi kerak (24 soat uchun «24/7» ni belgilang)."})
+        return attrs
 
     @extend_schema_field(SubscriptionSerializer(allow_null=True))
     def get_subscription(self, profile):
@@ -176,6 +208,14 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
 
     def validate_telegram_username(self, value):
         return value.strip().lstrip("@")
+
+
+class BusinessLogoSerializer(serializers.ModelSerializer):
+    logo = serializers.ImageField()
+
+    class Meta:
+        model = BusinessProfile
+        fields = ["logo"]
 
 
 # ---------- E'lonlar ----------

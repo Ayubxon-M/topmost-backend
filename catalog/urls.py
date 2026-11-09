@@ -9,6 +9,7 @@ router.register("regions", views.RegionViewSet, basename="region")
 router.register("cities", views.CityViewSet, basename="city")
 router.register("categories", views.CategoryViewSet, basename="category")
 router.register("tariffs", views.TariffViewSet, basename="tariff")
+router.register("businesses", views.BusinessViewSet, basename="business")
 router.register("listings", views.ListingViewSet, basename="listing")
 
 urlpatterns = [
@@ -19,5 +20,6 @@ urlpatterns = [
     path("auth/change-password/", views.ChangePasswordView.as_view(), name="change-password"),
     path("auth/delete-account/", views.DeleteAccountView.as_view(), name="delete-account"),
     path("business/me/", views.MyBusinessView.as_view(), name="my-business"),
+    path("business/me/logo/", views.MyBusinessLogoView.as_view(), name="my-business-logo"),
     path("", include(router.urls)),
 ]

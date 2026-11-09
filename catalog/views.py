@@ -19,7 +19,7 @@ from rest_framework.views import APIView
 from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription, Tariff
 from .permissions import IsBusiness, IsBusinessOrReadOnly
 from .serializers import (
-    AuthResponseSerializer, BusinessProfileSerializer, CategorySerializer, ChangePasswordSerializer,
+    AuthResponseSerializer, BusinessLogoSerializer, BusinessProfileSerializer, BusinessPublicSerializer, CategorySerializer, ChangePasswordSerializer,
     CitySerializer, DeleteAccountSerializer, ListingImageSerializer, ListingSerializer, LoginSerializer,
     RegionSerializer, RegisterSerializer, TariffSerializer, UserSerializer,
 )
@@ -178,6 +178,7 @@ class TariffViewSet(viewsets.ReadOnlyModelViewSet):
         OpenApiParameter("city", OpenApiTypes.INT, description="Shahar/tuman id"),
         OpenApiParameter("category", OpenApiTypes.INT, description="Kategoriya id"),
         OpenApiParameter("region", OpenApiTypes.INT, description="Viloyat id"),
+        OpenApiParameter("business", OpenApiTypes.INT, description="Biznes id (biznes sahifasidagi e'lonlar)"),
         OpenApiParameter("q", OpenApiTypes.STR, description="Qidiruv (sarlavha va izoh bo'yicha)"),
     ]),
     retrieve=extend_schema(summary="Bitta e'lon"),
@@ -235,6 +236,9 @@ class ListingViewSet(viewsets.ModelViewSet):
         region = int_param(self.request, "region")
         if region is not None:
             qs = qs.filter(business__city__region_id=region)
+        business = int_param(self.request, "business")
+        if business is not None:
+            qs = qs.filter(business_id=business)
 
         # 3) Qidiruv: har bir so'z sarlavha yoki izohda bo'lishi kerak.
         #    "Do‘kon", "Doʻkon", "do'kon" — hammasi bir xil topiladi.
@@ -314,14 +318,14 @@ class MyBusinessView(APIView):
 
     @extend_schema(tags=["business"], summary="Mening biznes profilim", responses=BusinessProfileSerializer)
     def get(self, request):
-        return Response(BusinessProfileSerializer(self.get_profile()).data)
+        return Response(BusinessProfileSerializer(self.get_profile(), context={"request": request}).data)
 
     @extend_schema(tags=["business"], summary="Biznes profil yaratish", request=BusinessProfileSerializer,
                    responses={201: BusinessProfileSerializer})
     def post(self, request):
         if BusinessProfile.objects.filter(user=request.user).exists():
             raise ValidationError({"detail": "Profil allaqachon mavjud. Tahrirlash uchun PATCH ishlating."})
-        serializer = BusinessProfileSerializer(data=request.data)
+        serializer = BusinessProfileSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -337,7 +341,55 @@ class MyBusinessView(APIView):
         return self._update(request, partial=True)
 
     def _update(self, request, partial):
-        serializer = BusinessProfileSerializer(self.get_profile(), data=request.data, partial=partial)
+        serializer = BusinessProfileSerializer(self.get_profile(), data=request.data, partial=partial,
+                                               context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class MyBusinessLogoView(APIView):
+    """
+    POST   /api/business/me/logo/  — logo yuklash (multipart: logo)
+    DELETE /api/business/me/logo/  — logoni o'chirish
+    """
+    permission_classes = [IsBusiness]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_profile(self):
+        profile = BusinessProfile.objects.filter(user=self.request.user).first()
+        if profile is None:
+            raise NotFound("Biznes profil hali yaratilmagan.")
+        return profile
+
+    @extend_schema(tags=["business"], summary="Logo yuklash (multipart)",
+                   request={"multipart/form-data": BusinessLogoSerializer}, responses=BusinessProfileSerializer)
+    def post(self, request):
+        profile = self.get_profile()
+        serializer = BusinessLogoSerializer(profile, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        old = profile.logo.name
+        serializer.save()
+        if old and old != profile.logo.name:
+            profile.logo.storage.delete(old)  # eski logo faylini diskdan o'chiramiz
+        return Response(BusinessProfileSerializer(profile, context={"request": request}).data)
+
+    @extend_schema(tags=["business"], summary="Logoni o'chirish", request=None, responses={204: None})
+    def delete(self, request):
+        profile = self.get_profile()
+        if profile.logo:
+            profile.logo.delete(save=True)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class BusinessViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    GET /api/businesses/{id}/  — biznes sahifasi (hammaga ochiq).
+    E'lonlari: GET /api/listings/?business={id}
+    """
+    serializer_class = BusinessPublicSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        # Bloklangan foydalanuvchining biznesi ko'rinmaydi
+        return BusinessProfile.objects.filter(user__is_active=True).select_related("city", "category")

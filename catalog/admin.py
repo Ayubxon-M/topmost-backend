@@ -121,11 +121,24 @@ class BusinessProfileAdmin(admin.ModelAdmin):
     autocomplete_fields = ("user",)
     list_per_page = 30
     inlines = [SubscriptionInline]
+    readonly_fields = ("logo_preview",)
     fieldsets = (
-        ("Asosiy", {"fields": ("user", "name", "category")}),
+        ("Asosiy", {"fields": ("user", "name", "category", "description", "logo_preview", "logo")}),
         ("Kontaktlar", {"fields": ("phone", "telegram_username")}),
-        ("Joylashuv", {"fields": ("city",)}),
+        ("Joylashuv", {
+            "fields": ("city", "address", ("latitude", "longitude")),
+            "description": "Koordinatani Google yoki Yandex xaritadan olish mumkin: joyni bosib turing — "
+                           "40.528, 70.942 kabi ikki son chiqadi.",
+        }),
+        ("Ish vaqti", {
+            "fields": ("is_24_7", "work_days", ("opens_at", "closes_at")),
+            "description": "Ish kunlari raqamlarda: 1 — dushanba ... 7 — yakshanba. Masalan «123456» — dushanba–shanba.",
+        }),
     )
+
+    @admin.display(description="Logo")
+    def logo_preview(self, obj):
+        return thumb(obj.logo if obj.pk else None, "md")
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_listings=Count("listings")).prefetch_related(

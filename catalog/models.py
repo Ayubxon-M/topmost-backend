@@ -142,6 +142,21 @@ class BusinessProfile(models.Model):
     telegram_username = models.CharField("Telegram username", max_length=100, blank=True)
     city = models.ForeignKey(City, on_delete=models.PROTECT, verbose_name="Shahar / tuman")
     category = models.ForeignKey(Category, on_delete=models.PROTECT, verbose_name="Kategoriya")
+
+    # Biznes sahifasi
+    description = models.TextField("Biznes haqida", blank=True)
+    address = models.CharField("Manzil", max_length=255, blank=True, help_text="Masalan: Turkiston ko'chasi 12, bozor yonida")
+    logo = models.ImageField("Logo", upload_to="logos/", blank=True)
+    # Xarita uchun (ikkalasi birga to'ldiriladi yoki ikkalasi ham bo'sh)
+    latitude = models.FloatField("Kenglik (latitude)", null=True, blank=True)
+    longitude = models.FloatField("Uzunlik (longitude)", null=True, blank=True)
+
+    # Ish vaqti. work_days — ishlaydigan kunlar raqami: 1=dushanba ... 7=yakshanba. "123456" — dushanba-shanba.
+    work_days = models.CharField("Ish kunlari", max_length=7, default="123456", blank=True)
+    opens_at = models.TimeField("Ochiladi", null=True, blank=True)
+    closes_at = models.TimeField("Yopiladi", null=True, blank=True, help_text="Ochilishdan kichik bo'lsa — tungi ish (masalan 18:00–02:00)")
+    is_24_7 = models.BooleanField("24/7 ishlaydi", default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -150,6 +165,24 @@ class BusinessProfile(models.Model):
 
     def __str__(self):
         return self.name
+
+    def is_open_at(self, moment):
+        """Berilgan vaqtda ochiqmi? Ish vaqti ko'rsatilmagan bo'lsa — None (noma'lum)."""
+        if self.is_24_7:
+            return True
+        if not (self.opens_at and self.closes_at):
+            return None
+        local = timezone.localtime(moment)
+        t, day = local.time(), str(local.isoweekday())
+        prev_day = str((local.isoweekday() - 2) % 7 + 1)  # kechagi kun (1 -> 7)
+        if self.opens_at < self.closes_at:  # oddiy kun: 09:00–18:00
+            return day in self.work_days and self.opens_at <= t < self.closes_at
+        # Tungi ish: 18:00–02:00. Kechqurun — bugungi ish kuni, yarim tundan keyin — kechagisi
+        return (day in self.work_days and t >= self.opens_at) or (prev_day in self.work_days and t < self.closes_at)
+
+    @property
+    def is_open_now(self):
+        return self.is_open_at(timezone.now())
 
 
 class Listing(models.Model):

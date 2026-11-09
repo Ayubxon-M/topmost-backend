@@ -322,6 +322,40 @@ class BusinessPageTests(BaseAPITest):
         User.objects.filter(pk=self.user.pk).update(is_active=False)
         self.assertEqual(self.anon.get(f"/api/businesses/{self.biz.pk}/").status_code, 404)
 
+class PriceTypeTests(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.user, self.biz = self.make_business("+998901000001")
+        self.api = self.client_for(self.user)
+
+    def create(self, **data):
+        return self.api.post("/api/listings/", {"title": "Xizmat", **data}, format="json")
+
+    def test_types(self):
+        self.assertEqual(self.create(price_type="fixed", price=150000).data["price"], 150000)
+        r = self.create(price_type="from", price=50000)
+        self.assertEqual((r.data["price_type"], r.data["price"]), ("from", 50000))
+        r = self.create(price_type="free", price=999)  # bepulda narx saqlanmaydi
+        self.assertEqual((r.data["price_type"], r.data["price"]), ("free", None))
+        self.assertEqual(self.create().data["price_type"], "negotiable")  # standart
+
+    def test_priced_types_require_price(self):
+        for t in ("fixed", "from"):
+            r = self.create(price_type=t)
+            self.assertEqual(r.status_code, 400, t)
+            self.assertIn("price", r.data)
+        self.assertEqual(self.create(price_type="cheap").status_code, 400)
+
+    def test_old_app_sending_only_price_gets_fixed(self):
+        self.assertEqual(self.create(price=1000).data["price_type"], "fixed")
+
+    def test_switch_to_negotiable_clears_price(self):
+        listing_id = self.create(price_type="fixed", price=1000).data["id"]
+        r = self.api.patch(f"/api/listings/{listing_id}/", {"price_type": "negotiable"}, format="json")
+        self.assertIsNone(r.data["price"])
+        r = self.api.patch(f"/api/listings/{listing_id}/", {"price_type": "fixed"}, format="json")
+        self.assertEqual(r.status_code, 400)  # narxsiz "aniq narx" bo'lmaydi
+
 class CategoryTreeTests(BaseAPITest):
     def test_api_returns_parent_and_icon(self):
         santexnik = Category.objects.create(name="Santexnik", parent=self.usta, icon="plumbing")

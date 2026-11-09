@@ -187,10 +187,19 @@ class BusinessProfile(models.Model):
 
 class Listing(models.Model):
     """E'lon."""
+
+    class PriceType(models.TextChoices):
+        FIXED = "fixed", "Aniq narx"          # 150 000 so'm
+        FROM = "from", "Narxdan boshlab"      # 50 000 so'mdan
+        NEGOTIABLE = "negotiable", "Kelishilgan"
+        FREE = "free", "Bepul"
+
     business = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name="listings", verbose_name="Biznes")
     title = models.CharField("Sarlavha", max_length=200)
     description = models.TextField("Izoh", blank=True)
-    price = models.PositiveIntegerField("Narx (so'm)", null=True, blank=True)
+    price_type = models.CharField("Narx turi", max_length=12, choices=PriceType.choices, default=PriceType.NEGOTIABLE)
+    price = models.PositiveIntegerField("Narx (so'm)", null=True, blank=True,
+                                        help_text="Faqat «Aniq narx» va «Narxdan boshlab» uchun")
     is_active = models.BooleanField("Faol", default=True, help_text="Egasi e'lonni yashirishi mumkin")
     is_blocked = models.BooleanField("Bloklangan", default=False, help_text="Admin tomonidan bloklangan")
     # Qidiruv uchun: sarlavha + izohning kichik harfli, apostroflari birlashtirilgan nusxasi.
@@ -203,7 +212,16 @@ class Listing(models.Model):
         verbose_name_plural = "E'lonlar"
         ordering = ["-created_at"]
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.price_type in self.PRICED_TYPES and self.price is None:
+            raise ValidationError({"price": "Bu narx turi uchun narxni kiriting."})
+
+    PRICED_TYPES = ("fixed", "from")
+
     def save(self, *args, **kwargs):
+        if self.price_type not in self.PRICED_TYPES:
+            self.price = None  # "Kelishilgan" va "Bepul" — narx saqlanmaydi
         self.search_text = normalize_text(f"{self.title} {self.description}")
         super().save(*args, **kwargs)
 

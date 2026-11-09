@@ -233,8 +233,20 @@ class ListingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Listing
         fields = [
-            "id", "title", "description", "price", "is_active", "is_blocked",
+            "id", "title", "description", "price_type", "price", "is_active", "is_blocked",
             "created_at", "updated_at", "business", "images",
         ]
         # is_blocked'ni faqat admin o'zgartiradi
         read_only_fields = ["is_blocked", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        # Narx turi ko'rsatilmay, faqat narx yuborilsa (eski ilova) — "aniq narx" deb hisoblaymiz.
+        # Aks holda "kelishilgan" e'longa yuborilgan narx jimgina o'chib ketardi.
+        current_type = getattr(self.instance, "price_type", Listing.PriceType.NEGOTIABLE)
+        if "price_type" not in attrs and attrs.get("price") is not None and current_type not in Listing.PRICED_TYPES:
+            attrs["price_type"] = Listing.PriceType.FIXED
+        price_type = attrs.get("price_type", getattr(self.instance, "price_type", Listing.PriceType.NEGOTIABLE))
+        price = attrs["price"] if "price" in attrs else getattr(self.instance, "price", None)
+        if price_type in Listing.PRICED_TYPES and price is None:
+            raise serializers.ValidationError({"price": "Bu narx turi uchun narxni kiriting."})
+        return attrs

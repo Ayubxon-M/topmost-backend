@@ -206,7 +206,7 @@ class ListingStatusFilter(admin.SimpleListFilter):
 class ListingAdmin(admin.ModelAdmin):
     list_display = ("photo", "title", "business", "price_display", "status_badge", "created_at")
     list_display_links = ("photo", "title")
-    list_filter = (ListingStatusFilter, "is_active", "is_blocked", "business__city", "business__category")
+    list_filter = (ListingStatusFilter, "price_type", "is_active", "is_blocked", "business__city", "business__category")
     search_fields = ("title", "description", "business__name")
     list_select_related = ("business__user",)
     autocomplete_fields = ("business",)
@@ -216,7 +216,7 @@ class ListingAdmin(admin.ModelAdmin):
     inlines = [ListingImageInline]
     actions = ["block_listings", "unblock_listings"]
     fieldsets = (
-        ("E'lon", {"fields": ("business", "title", "description", "price")}),
+        ("E'lon", {"fields": ("business", "title", "description", ("price_type", "price"))}),
         ("Holat", {
             "fields": ("is_active", "is_blocked"),
             "description": "«Faol» — egasi boshqaradi. «Bloklangan» — faqat admin. "
@@ -235,7 +235,11 @@ class ListingAdmin(admin.ModelAdmin):
 
     @admin.display(description="Narx", ordering="price")
     def price_display(self, obj):
-        return money(obj.price)
+        if obj.price_type == Listing.PriceType.FROM:
+            return money(obj.price) + "dan"
+        if obj.price_type == Listing.PriceType.FIXED:
+            return money(obj.price)
+        return obj.get_price_type_display()
 
     @admin.display(description="Holat")
     def status_badge(self, obj):

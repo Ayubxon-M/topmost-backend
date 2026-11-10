@@ -259,10 +259,17 @@ class ReportSerializer(serializers.ModelSerializer):
 
 class ListingImageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(validators=[validate_image_size])
+    # Ro'yxatdagi kartalar uchun kichik nusxa (bo'lmasa — to'liq rasm)
+    thumbnail = serializers.SerializerMethodField()
 
     class Meta:
         model = ListingImage
-        fields = ["id", "image", "order"]
+        fields = ["id", "image", "thumbnail", "order"]
+
+    def get_thumbnail(self, obj) -> str:
+        file = obj.thumbnail or obj.image
+        request = self.context.get("request")
+        return request.build_absolute_uri(file.url) if request else file.url
 
 
 class ListingSerializer(serializers.ModelSerializer):

@@ -120,7 +120,7 @@ class DeleteAccountView(APIView):
             raise ValidationError({"detail": _("Admin akkauntini ilova orqali o'chirib bo'lmaydi.")})
         # Rasm fayllarini diskdan ham o'chiramiz (bazadagi yozuvlar CASCADE bilan o'chadi)
         for img in ListingImage.objects.filter(listing__business__user=user):
-            img.image.delete(save=False)
+            img.delete_files()
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -280,7 +280,7 @@ class ListingViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         for img in instance.images.all():
-            img.image.delete(save=False)  # rasm faylini diskdan ham o'chiramiz
+            img.delete_files()  # rasm fayllarini diskdan ham o'chiramiz
         instance.delete()
 
     def retrieve(self, request, *args, **kwargs):
@@ -362,7 +362,7 @@ class ListingViewSet(viewsets.ModelViewSet):
     def delete_image(self, request, pk=None, image_id=None):
         listing = self.get_object()
         image = get_object_or_404(listing.images, pk=image_id)
-        image.image.delete(save=False)
+        image.delete_files()
         image.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

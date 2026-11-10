@@ -826,7 +826,41 @@ class ListingOwnerTests(BaseAPITest):
         self.assertEqual(self.a.delete(f"{url}{r.data['id']}/").status_code, 204)
         self.assertEqual(self.listing.images.count(), 0)
 
+    def test_thumbnail_created_small_and_deleted_with_image(self):
+        import os
+        from PIL import Image as PILImage
+        buf = BytesIO()
+        PILImage.new("RGB", (1600, 1200), "teal").save(buf, "JPEG")
+        big = SimpleUploadedFile("big.jpg", buf.getvalue(), content_type="image/jpeg")
+        r = self.a.post(f"/api/listings/{self.listing.pk}/images/", {"image": big}, format="multipart")
+        self.assertEqual(r.status_code, 201)
+        self.assertIn("/media/listings/thumbs/", r.data["thumbnail"])
+        img = ListingImage.objects.get(pk=r.data["id"])
+        with PILImage.open(img.thumbnail.path) as thumb:
+            self.assertEqual(max(thumb.size), 480)
+        self.assertLess(os.path.getsize(img.thumbnail.path), os.path.getsize(img.image.path))
+        # Diskdagi eski rasm uchun ham (migratsiya shunday qiladi)
+        old_thumb = img.thumbnail.path
+        img.thumbnail = ""
+        img.make_thumbnail()
+        img.save()
+        self.assertTrue(os.path.exists(img.thumbnail.path))
+        os.remove(old_thumb)
+        paths = [img.image.path, img.thumbnail.path]
+        self.a.delete(f"/api/listings/{self.listing.pk}/images/{img.pk}/")
+        self.assertFalse(any(os.path.exists(p) for p in paths))  # ikkala fayl ham o'chdi
+
+    def test_thumbnail_from_transparent_png(self):
+        buf = BytesIO()
+        PILImage_new = __import__("PIL.Image", fromlist=["Image"])
+        PILImage_new.new("RGBA", (800, 800), (255, 0, 0, 0)).save(buf, "PNG")
+        png = SimpleUploadedFile("t.png", buf.getvalue(), content_type="image/png")
+        r = self.a.post(f"/api/listings/{self.listing.pk}/images/", {"image": png}, format="multipart")
+        self.assertEqual(r.status_code, 201)
+        self.assertTrue(ListingImage.objects.get(pk=r.data["id"]).thumbnail)
+
     def test_upload_not_an_image(self):
+
         bad = SimpleUploadedFile("x.png", b"bu rasm emas", content_type="image/png")
         r = self.a.post(f"/api/listings/{self.listing.pk}/images/", {"image": bad}, format="multipart")
         self.assertEqual(r.status_code, 400)

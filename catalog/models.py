@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 
+from .images import build_thumbnail
 from .utils import normalize_text
 
 
@@ -287,6 +288,8 @@ class Report(models.Model):
 class ListingImage(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="images", verbose_name="E'lon")
     image = models.ImageField("Rasm", upload_to="listings/")
+    # Ro'yxatdagi kartalar uchun kichik nusxa (~30-40 KB) — saqlashda avtomatik yasaladi
+    thumbnail = models.ImageField("Kichik nusxa", upload_to="listings/thumbs/", blank=True, editable=False)
     order = models.PositiveSmallIntegerField("Tartib", default=0)
 
     class Meta:
@@ -296,6 +299,22 @@ class ListingImage(models.Model):
 
     def __str__(self):
         return f"{self.listing.title} - rasm {self.order}"
+
+    def save(self, *args, **kwargs):
+        if self.image and not self.thumbnail:
+            self.make_thumbnail()
+        super().save(*args, **kwargs)
+
+    def make_thumbnail(self):
+        """Kichik nusxa (catalog/images.py). Rasmni o'qib bo'lmasa — hech narsa qilmaydi."""
+        result = build_thumbnail(self.image)
+        if result:
+            self.thumbnail.save(*result, save=False)
+
+    def delete_files(self):
+        """Rasm va kichik nusxa fayllarini diskdan o'chiradi."""
+        self.image.delete(save=False)
+        self.thumbnail.delete(save=False)
 
 
 class Tariff(models.Model):

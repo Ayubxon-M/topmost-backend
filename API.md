@@ -31,6 +31,14 @@ Qo'qondagi ustalar, do'konlar va kafelar e'lonlari uchun backend API.
 - Sanalar — ISO 8601, Toshkent vaqti: `"2026-11-07T13:02:59.438030+05:00"`.
 - Narx — butun son, so'mda (`50000`). Narx ko'rsatilmagan bo'lsa `null`.
 
+### Til (o'zbekcha / ruscha)
+Har so'rovga sarlavha qo'shing:
+```
+Accept-Language: ru        (yoki uz — standart)
+```
+`ru` bo'lsa: viloyat, shahar va kategoriya nomlari (`name`) va xato xabarlari ruscha keladi
+(ruscha nomi kiritilmagan bo'lsa — o'zbekchasi). Maydon nomlari o'zgarmaydi. Boshqa til — o'zbekcha.
+
 ### Autentifikatsiya (token)
 `register` yoki `login` javobida `token` keladi. Uni saqlab qo'ying (masalan `flutter_secure_storage`)
 va kerakli so'rovlarga sarlavha qo'shing:
@@ -291,6 +299,10 @@ Yashirilgan, bloklangan e'lonlar va bloklangan bizneslarning e'lonlari ro'yxatga
 `closes_at` `opens_at` dan kichik bo'lsa — tungi ish (masalan 18:00–02:00). `latitude`/`longitude` `null` bo'lishi mumkin.
 
 `is_favorite` — tizimga kirgan foydalanuvchi bu e'lonni saqlaganmi (mehmonga doim `false`).
+
+`views_count` — necha kishi ko'rgan. `GET /api/listings/{id}/` sanaydi: bitta odam (yoki mehmon IP'si)
+sutkada bir marta, e'lon egasining o'zi sanalmaydi. Ro'yxat (`/api/listings/`) sanamaydi.
+`favorites_count` — faqat `GET /api/listings/mine/` da (biznes o'z e'lonini nechta kishi saqlagani), boshqa joyda `null`.
 
 > Telegram'ni ochish: `https://t.me/<telegram_username>`. Qo'ng'iroq: `tel:<phone>`.
 

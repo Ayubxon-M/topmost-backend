@@ -8,6 +8,8 @@ qaysi test "FAIL" bo'lganiga qarab muammoni topasiz.
 import os
 import shutil
 import tempfile
+from pathlib import Path
+from unittest import mock
 from datetime import timedelta
 from io import BytesIO, StringIO
 
@@ -977,6 +979,37 @@ class BackupTests(TestCase):
             self.assertEqual(con.execute("select x from t").fetchone()[0], 42)
             con.close()
 
+
+class CheckServerTests(TestCase):
+    def run_check(self):
+        from django.core.management import call_command
+        out = StringIO()
+        call_command("check_server", stdout=out)
+        return out.getvalue()
+
+    def test_dev_settings_reported(self):
+        out = self.run_check()
+        self.assertIn("❌ Maxfiy kalit", out)  # dasturchilik kaliti (django-insecure-...)
+        self.assertIn("tuzatilishi kerak", out)
+
+    def test_production_ready(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "static").mkdir()
+            Path(tmp, "static", "staticfiles.json").write_text("{}")
+            User.objects.create_superuser("admin", password=PASSWORD)
+            region = Region.objects.create(name="R")
+            City.objects.create(region=region, name="C")
+            Category.objects.create(name="K", name_ru="К")
+            Tariff.objects.create(name="Top", level=1, price=1, duration_days=30)
+            with override_settings(DEBUG=False, SECRET_KEY="p" * 50, ALLOWED_HOSTS=["api.topmost.uz"],
+                                   SECURE_SSL_REDIRECT=True, CSRF_TRUSTED_ORIGINS=["https://api.topmost.uz"],
+                                   STATIC_ROOT=Path(tmp, "static"), MEDIA_ROOT=Path(tmp, "media"),
+                                   PRIVACY_CONTACT="Telegram @topmost"), \
+                    mock.patch.dict(os.environ, {"BACKUP_DIR": str(Path(tmp, "backups"))}):
+                out = self.run_check()
+        self.assertNotIn("❌", out)
+        self.assertNotIn("⚠️", out)
+        self.assertIn("Hammasi joyida", out)
 
 class PrivacyPageTests(TestCase):
     def test_privacy_page_public(self):

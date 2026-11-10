@@ -13,7 +13,7 @@ from django.utils.html import format_html
 
 from .admin_site import SUBSCRIPTION_SOON_DAYS
 from .models import (
-    BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription, Tariff, User,
+    BusinessProfile, Category, City, Listing, ListingImage, Region, Report, Subscription, Tariff, User,
 )
 
 # Guruhlar (Groups) bizga kerak emas — menyudan olib tashlaymiz
@@ -204,7 +204,7 @@ class ListingStatusFilter(admin.SimpleListFilter):
 
 @admin.register(Listing)
 class ListingAdmin(admin.ModelAdmin):
-    list_display = ("photo", "title", "business", "price_display", "status_badge", "favorites_count", "created_at")
+    list_display = ("photo", "title", "business", "price_display", "status_badge", "favorites_count", "reports_count", "created_at")
     list_display_links = ("photo", "title")
     list_filter = (ListingStatusFilter, "price_type", "is_active", "is_blocked", "business__city", "business__category")
     search_fields = ("title", "description", "business__name")
@@ -226,12 +226,21 @@ class ListingAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related("images").annotate(_favorites=Count("favorites"))
+        return super().get_queryset(request).prefetch_related("images").annotate(
+            _favorites=Count("favorites", distinct=True),
+            _reports=Count("reports", filter=Q(reports__status=Report.Status.NEW), distinct=True),
+        )
 
     @admin.display(description="Rasm")
     def photo(self, obj):
         images = list(obj.images.all())
         return thumb(images[0].image if images else None)
+
+    @admin.display(description="⚠️", ordering="_reports")
+    def reports_count(self, obj):
+        if not obj._reports:
+            return "—"
+        return format_html('<a href="../report/?listing__id__exact={}&status__exact=new">{}</a>', obj.pk, badge(obj._reports, "orange"))
 
     @admin.display(description="❤️", ordering="_favorites")
     def favorites_count(self, obj):
@@ -265,6 +274,53 @@ class ListingAdmin(admin.ModelAdmin):
         count = queryset.update(is_blocked=False)
         self.message_user(request, f"{count} ta e'lon blokdan chiqarildi.", messages.SUCCESS)
 
+
+# ---------- Shikoyatlar ----------
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ("listing_link", "reason", "short_comment", "reporter", "status_badge", "listing_state", "created_at")
+    list_filter = ("status", "reason")
+    search_fields = ("listing__title", "comment", "reporter__username", "listing__business__name")
+    list_select_related = ("listing__business", "reporter")
+    readonly_fields = ("listing", "reporter", "reason", "comment", "created_at")
+    fields = ("listing", "reporter", "reason", "comment", "created_at", "status")
+    actions = ["block_reported_listings", "reject_reports"]
+    date_hierarchy = "created_at"
+
+    def has_add_permission(self, request):
+        return False  # shikoyatlarni faqat foydalanuvchilar ilovadan yuboradi
+
+    @admin.display(description="E'lon", ordering="listing__title")
+    def listing_link(self, obj):
+        return format_html('<a href="../listing/{}/change/">{}</a> <span style="color:var(--body-quiet-color)">· {}</span>',
+                           obj.listing_id, obj.listing.title, obj.listing.business.name)
+
+    @admin.display(description="Izoh")
+    def short_comment(self, obj):
+        return (obj.comment[:60] + "…") if len(obj.comment) > 60 else (obj.comment or "—")
+
+    @admin.display(description="Holat", ordering="status")
+    def status_badge(self, obj):
+        color = {"new": "orange", "resolved": "green", "rejected": "gray"}[obj.status]
+        return badge(obj.get_status_display(), color)
+
+    @admin.display(description="E'lon holati")
+    def listing_state(self, obj):
+        return badge("Bloklangan", "red") if obj.listing.is_blocked else badge("Ko'rinmoqda", "green")
+
+    @admin.action(description="🔒 E'lonni bloklash va shikoyatni yopish")
+    def block_reported_listings(self, request, queryset):
+        listing_ids = set(queryset.values_list("listing_id", flat=True))
+        Listing.objects.filter(pk__in=listing_ids).update(is_blocked=True)
+        # Shu e'lonlarning barcha shikoyatlari yopiladi
+        Report.objects.filter(listing_id__in=listing_ids, status=Report.Status.NEW).update(status=Report.Status.RESOLVED)
+        self.message_user(request, f"{len(listing_ids)} ta e'lon bloklandi.", messages.SUCCESS)
+
+    @admin.action(description="✖ Asossiz deb belgilash")
+    def reject_reports(self, request, queryset):
+        count = queryset.update(status=Report.Status.REJECTED)
+        self.message_user(request, f"{count} ta shikoyat asossiz deb belgilandi.", messages.SUCCESS)
 
 # ---------- Tariflar va obunalar ----------
 

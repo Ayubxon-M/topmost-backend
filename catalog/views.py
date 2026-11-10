@@ -16,12 +16,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BusinessProfile, Category, City, Favorite, Listing, ListingImage, Region, Subscription, Tariff
+from .models import BusinessProfile, Category, City, Favorite, Listing, ListingImage, Region, Report, Subscription, Tariff
 from .permissions import IsBusiness, IsBusinessOrReadOnly
 from .serializers import (
     AuthResponseSerializer, BusinessLogoSerializer, BusinessProfileSerializer, BusinessPublicSerializer, CategorySerializer, ChangePasswordSerializer,
     CitySerializer, DeleteAccountSerializer, ListingImageSerializer, ListingSerializer, LoginSerializer,
-    MapBusinessSerializer,
+    MapBusinessSerializer, ReportSerializer,
     RegionSerializer, RegisterSerializer, TariffSerializer, UserSerializer,
 )
 from .utils import normalize_text
@@ -195,6 +195,7 @@ class ListingViewSet(viewsets.ModelViewSet):
     GET    /api/listings/mine/         — biznes: o'z e'lonlari (yashirinlari ham)
     GET    /api/listings/favorites/    — tizimga kirgan: sevimli e'lonlari
     POST/DELETE /api/listings/{id}/favorite/ — sevimlilarga qo'shish / olib tashlash
+    POST   /api/listings/{id}/report/  — shikoyat (tizimga kirgan)
     POST   /api/listings/              — biznes: yangi e'lon
     PATCH  /api/listings/{id}/         — biznes: faqat o'z e'loni
     DELETE /api/listings/{id}/         — biznes: faqat o'z e'loni
@@ -217,7 +218,7 @@ class ListingViewSet(viewsets.ModelViewSet):
 
         if self.action == "list":
             return self.filter_public(qs)
-        if self.action in ("favorite", "favorites"):
+        if self.action in ("favorite", "favorites", "report"):
             return qs.filter(is_active=True, is_blocked=False, business__user__is_active=True)
         if self.action == "retrieve":
             # Hamma ko'ra oladigan e'lonlar + egasi o'zining yashirin/bloklangan e'lonini ham ochadi
@@ -305,6 +306,21 @@ class ListingViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         _, created = Favorite.objects.get_or_create(user=request.user, listing=listing)
         return Response({"is_favorite": True}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    @extend_schema(summary="E'lon ustidan shikoyat", request=ReportSerializer, responses={201: None})
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    def report(self, request, pk=None):
+        listing = self.get_object()  # faqat ko'rinib turgan e'lon
+        if listing.business.user_id == request.user.id:
+            raise ValidationError({"detail": "O'z e'loningiz ustidan shikoyat qilib bo'lmaydi."})
+        serializer = ReportSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # Qayta yuborilsa — yangilanadi va yana "yangi" bo'ladi (admin qaytadan ko'radi)
+        Report.objects.update_or_create(
+            listing=listing, reporter=request.user,
+            defaults={**serializer.validated_data, "status": Report.Status.NEW},
+        )
+        return Response({"detail": "Shikoyatingiz qabul qilindi. Rahmat!"}, status=status.HTTP_201_CREATED)
 
     @extend_schema(summary="E'longa rasm yuklash (multipart)",
                    request={"multipart/form-data": ListingImageSerializer},

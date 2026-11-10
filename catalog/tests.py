@@ -18,7 +18,7 @@ from django.utils import timezone
 from PIL import Image
 from rest_framework.test import APIClient
 
-from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription, Tariff, User
+from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Report, Subscription, Tariff, User
 from .utils import normalize_phone, normalize_text
 
 PASSWORD = "Topmost2026!"
@@ -321,6 +321,46 @@ class BusinessPageTests(BaseAPITest):
     def test_blocked_business_page_hidden(self):
         User.objects.filter(pk=self.user.pk).update(is_active=False)
         self.assertEqual(self.anon.get(f"/api/businesses/{self.biz.pk}/").status_code, 404)
+
+class ReportTests(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.owner, self.biz = self.make_business("+998901000001")
+        self.listing = Listing.objects.create(business=self.biz, title="Shubhali e'lon")
+        self.user = User.objects.create_user("+998901000009", password=PASSWORD)
+        self.api = self.client_for(self.user)
+        self.url = f"/api/listings/{self.listing.pk}/report/"
+
+    def test_report_and_repeat_updates(self):
+        r = self.api.post(self.url, {"reason": "fraud", "comment": "Pul oldi, kelmadi"}, format="json")
+        self.assertEqual(r.status_code, 201)
+        self.api.post(self.url, {"reason": "spam"}, format="json")  # qayta — yangilanadi, ikkinchisi qo'shilmaydi
+        self.assertEqual(Report.objects.count(), 1)
+        self.assertEqual(Report.objects.get().reason, "spam")
+
+    def test_validation_and_permissions(self):
+        self.assertEqual(self.api.post(self.url, {"reason": "yoqmadi"}, format="json").status_code, 400)
+        self.assertEqual(self.anon.post(self.url, {"reason": "spam"}, format="json").status_code, 401)
+        own = self.client_for(self.owner).post(self.url, {"reason": "spam"}, format="json")
+        self.assertEqual(own.status_code, 400)  # o'z e'loni
+        Listing.objects.filter(pk=self.listing.pk).update(is_blocked=True)
+        self.assertEqual(self.api.post(self.url, {"reason": "spam"}, format="json").status_code, 404)
+
+    def test_admin_block_action_and_pages(self):
+        self.api.post(self.url, {"reason": "fraud"}, format="json")
+        other = User.objects.create_user("+998901000008", password=PASSWORD)
+        self.client_for(other).post(self.url, {"reason": "spam"}, format="json")
+        admin_user = User.objects.create_superuser("admin", password=PASSWORD)
+        self.client.force_login(admin_user)
+        report = Report.objects.first()
+        for page in ["/admin/catalog/report/", f"/admin/catalog/report/{report.pk}/change/", "/admin/catalog/listing/", "/admin/"]:
+            self.assertEqual(self.client.get(page).status_code, 200, page)
+        self.assertContains(self.client.get("/admin/"), "Yangi shikoyatlar")
+        self.client.post("/admin/catalog/report/", {"action": "block_reported_listings", "_selected_action": [report.pk]})
+        self.listing.refresh_from_db()
+        self.assertTrue(self.listing.is_blocked)
+        # Shu e'lonning ikkala shikoyati ham yopildi
+        self.assertEqual(set(Report.objects.values_list("status", flat=True)), {"resolved"})
 
 class MapTests(BaseAPITest):
     def setUp(self):

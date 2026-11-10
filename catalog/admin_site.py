@@ -11,7 +11,7 @@ from django.utils import timezone
 # Menyu bo'limlari: (bo'lim nomi, [modellar]) — shu tartibda chiqadi
 MENU_SECTIONS = [
     ("Foydalanuvchilar va bizneslar", ["user", "businessprofile"]),
-    ("E'lonlar", ["listing"]),
+    ("E'lonlar", ["listing", "report"]),
     ("Tariflar va obunalar", ["subscription", "tariff"]),
     ("Ma'lumotnomalar", ["region", "city", "category"]),
 ]
@@ -48,7 +48,7 @@ class TopmostAdminSite(admin.AdminSite):
         return super().index(request, extra_context)
 
     def dashboard_context(self):
-        from .models import BusinessProfile, Category, City, Listing, Region, Subscription, Tariff, User
+        from .models import BusinessProfile, Category, City, Listing, Region, Report, Subscription, Tariff, User
 
         now = timezone.now()
         soon = now + timedelta(days=SUBSCRIPTION_SOON_DAYS)
@@ -60,6 +60,8 @@ class TopmostAdminSite(admin.AdminSite):
         active_subs = Subscription.objects.filter(start__lte=now, end__gt=now)
 
         stats = [
+            {"label": "Yangi shikoyatlar", "value": Report.objects.filter(status=Report.Status.NEW).count(),
+             "url": url("report", "?status__exact=new"), "color": "orange"},
             {"label": "Mijozlar", "value": User.objects.filter(role=User.Role.CLIENT, is_staff=False).count(),
              "url": url("user", "?role__exact=client&is_staff__exact=0"), "color": "blue"},
             {"label": "Bizneslar", "value": BusinessProfile.objects.count(),

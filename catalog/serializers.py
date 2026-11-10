@@ -9,7 +9,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Subscription, Tariff, User
+from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Report, Subscription, Tariff, User
 from .utils import normalize_phone
 
 
@@ -226,6 +226,12 @@ class BusinessLogoSerializer(serializers.ModelSerializer):
 
 
 # ---------- E'lonlar ----------
+
+class ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Report
+        fields = ["reason", "comment"]
+
 
 class ListingImageSerializer(serializers.ModelSerializer):
     class Meta:

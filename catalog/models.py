@@ -245,6 +245,40 @@ class Favorite(models.Model):
         return f"{self.user} ❤ {self.listing}"
 
 
+class Report(models.Model):
+    """Foydalanuvchi e'lon ustidan yuborgan shikoyat. Admin ko'rib chiqadi (App Store / Google Play talabi)."""
+
+    class Reason(models.TextChoices):
+        FRAUD = "fraud", "Firibgarlik / aldov"
+        INAPPROPRIATE = "inappropriate", "Nomaqbul (haqorat, 18+)"
+        SPAM = "spam", "Spam yoki takror e'lon"
+        WRONG_INFO = "wrong_info", "Noto'g'ri ma'lumot (narx, telefon)"
+        PROHIBITED = "prohibited", "Taqiqlangan mahsulot yoki xizmat"
+        OTHER = "other", "Boshqa"
+
+    class Status(models.TextChoices):
+        NEW = "new", "Yangi"
+        RESOLVED = "resolved", "Chora ko'rildi"
+        REJECTED = "rejected", "Asossiz"
+
+    listing = models.ForeignKey("Listing", on_delete=models.CASCADE, related_name="reports", verbose_name="E'lon")
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reports", verbose_name="Kim yubordi")
+    reason = models.CharField("Sabab", max_length=20, choices=Reason.choices)
+    comment = models.TextField("Izoh", blank=True, max_length=1000)
+    status = models.CharField("Holat", max_length=10, choices=Status.choices, default=Status.NEW)
+    created_at = models.DateTimeField("Yuborilgan", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Shikoyat"
+        verbose_name_plural = "Shikoyatlar"
+        ordering = ["-created_at"]
+        # Bitta odam bitta e'lonni bir marta shikoyat qiladi (qayta yuborsa — yangilanadi)
+        constraints = [models.UniqueConstraint(fields=["listing", "reporter"], name="unique_report")]
+
+    def __str__(self):
+        return f"{self.get_reason_display()} — {self.listing}"
+
+
 class ListingImage(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="images", verbose_name="E'lon")
     image = models.ImageField("Rasm", upload_to="listings/")

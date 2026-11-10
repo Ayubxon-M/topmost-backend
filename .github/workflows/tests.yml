@@ -1,0 +1,25 @@
+# GitHub'ga har push'da avtomatik testlar. Natija: repo sahifasida ✅ yoki ❌ (Actions bo'limi).
+name: Testlar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Kutubxonalarni o'rnatish
+        run: pip install -r requirements.txt
+      - name: Django tekshiruvi
+        run: python manage.py check
+      - name: Migratsiyalar unutilmaganmi
+        run: python manage.py makemigrations --check --dry-run
+      - name: Testlar
+        run: python manage.py test

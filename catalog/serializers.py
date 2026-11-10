@@ -10,6 +10,7 @@ from django.utils.translation import get_language
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from django.utils.translation import gettext as _
 from .models import BusinessProfile, Category, City, Listing, ListingImage, Region, Report, Subscription, Tariff, User
 from .utils import normalize_phone
 
@@ -42,9 +43,9 @@ class RegisterSerializer(serializers.Serializer):
     def validate_phone(self, value):
         phone = normalize_phone(value)
         if not phone:
-            raise serializers.ValidationError("Telefon raqami noto'g'ri. Masalan: +998901234567")
+            raise serializers.ValidationError(_("Telefon raqami noto'g'ri. Masalan: +998901234567"))
         if User.objects.filter(username=phone).exists():
-            raise serializers.ValidationError("Bu telefon raqami bilan allaqachon ro'yxatdan o'tilgan.")
+            raise serializers.ValidationError(_("Bu telefon raqami bilan allaqachon ro'yxatdan o'tilgan."))
         return phone
 
     def validate(self, attrs):
@@ -73,7 +74,7 @@ class LoginSerializer(serializers.Serializer):
         # authenticate() bloklangan (is_active=False) foydalanuvchini ham None qaytaradi
         user = authenticate(self.context.get("request"), username=phone, password=attrs["password"]) if phone else None
         if user is None:
-            raise serializers.ValidationError("Telefon raqami yoki parol noto'g'ri.")
+            raise serializers.ValidationError(_("Telefon raqami yoki parol noto'g'ri."))
         attrs["user"] = user
         return attrs
 
@@ -84,7 +85,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
     def validate_old_password(self, value):
         if not self.context["request"].user.check_password(value):
-            raise serializers.ValidationError("Joriy parol noto'g'ri.")
+            raise serializers.ValidationError(_("Joriy parol noto'g'ri."))
         return value
 
     def validate_new_password(self, value):
@@ -101,7 +102,7 @@ class DeleteAccountSerializer(serializers.Serializer):
 
     def validate_password(self, value):
         if not self.context["request"].user.check_password(value):
-            raise serializers.ValidationError("Parol noto'g'ri.")
+            raise serializers.ValidationError(_("Parol noto'g'ri."))
         return value
 
 
@@ -197,7 +198,7 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
     def validate_work_days(self, value):
         days = "".join(sorted(set(value)))
         if any(d not in "1234567" for d in days):
-            raise serializers.ValidationError("Faqat 1–7 raqamlari: 1 — dushanba, 7 — yakshanba.")
+            raise serializers.ValidationError(_("Faqat 1–7 raqamlari: 1 — dushanba, 7 — yakshanba."))
         return days
 
     def validate(self, attrs):
@@ -205,13 +206,13 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
         get = lambda name: attrs[name] if name in attrs else getattr(current, name, None)
         lat, lng = get("latitude"), get("longitude")
         if (lat is None) != (lng is None):
-            raise serializers.ValidationError({"latitude": "Kenglik va uzunlik birga kiritiladi."})
+            raise serializers.ValidationError({"latitude": _("Kenglik va uzunlik birga kiritiladi.")})
         if lat is not None and not (-90 <= lat <= 90 and -180 <= lng <= 180):
-            raise serializers.ValidationError({"latitude": "Koordinata noto'g'ri."})
+            raise serializers.ValidationError({"latitude": _("Koordinata noto'g'ri.")})
         if (get("opens_at") is None) != (get("closes_at") is None):
-            raise serializers.ValidationError({"opens_at": "Ochilish va yopilish vaqti birga kiritiladi."})
+            raise serializers.ValidationError({"opens_at": _("Ochilish va yopilish vaqti birga kiritiladi.")})
         if get("opens_at") is not None and get("opens_at") == get("closes_at"):
-            raise serializers.ValidationError({"closes_at": "Yopilish vaqti ochilishdan farq qilishi kerak (24 soat uchun «24/7» ni belgilang)."})
+            raise serializers.ValidationError({"closes_at": _("Yopilish vaqti ochilishdan farq qilishi kerak (24 soat uchun «24/7» ni belgilang).")})
         return attrs
 
     @extend_schema_field(SubscriptionSerializer(allow_null=True))
@@ -224,7 +225,7 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         phone = normalize_phone(value)
         if not phone:
-            raise serializers.ValidationError("Telefon raqami noto'g'ri. Masalan: +998901234567")
+            raise serializers.ValidationError(_("Telefon raqami noto'g'ri. Masalan: +998901234567"))
         return phone
 
     def validate_telegram_username(self, value):
@@ -236,7 +237,7 @@ MAX_IMAGE_MB = 8  # bitta rasm ko'pi bilan (ilova rasmlarni ~300 KB gacha kichra
 
 def validate_image_size(image):
     if image.size > MAX_IMAGE_MB * 1024 * 1024:
-        raise serializers.ValidationError(f"Rasm juda katta: ko'pi bilan {MAX_IMAGE_MB} MB.")
+        raise serializers.ValidationError(_("Rasm juda katta: ko'pi bilan %(mb)s MB.") % {"mb": MAX_IMAGE_MB})
     return image
 
 
@@ -302,5 +303,5 @@ class ListingSerializer(serializers.ModelSerializer):
         price_type = attrs.get("price_type", getattr(self.instance, "price_type", Listing.PriceType.NEGOTIABLE))
         price = attrs["price"] if "price" in attrs else getattr(self.instance, "price", None)
         if price_type in Listing.PRICED_TYPES and price is None:
-            raise serializers.ValidationError({"price": "Bu narx turi uchun narxni kiriting."})
+            raise serializers.ValidationError({"price": _("Bu narx turi uchun narxni kiriting.")})
         return attrs

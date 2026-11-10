@@ -347,6 +347,23 @@ class LanguageTests(BaseAPITest):
         b = self.anon.get("/api/listings/", HTTP_ACCEPT_LANGUAGE="ru").data["results"][0]["business"]
         self.assertEqual((b["city"]["name"], b["category"]["name"]), ("Коканд", "Мастера"))
 
+    def test_error_messages_in_russian(self):
+        r = self.anon.post("/api/auth/login/", {"phone": "901112233", "password": "x"}, format="json",
+                           HTTP_ACCEPT_LANGUAGE="ru")
+        self.assertEqual(r.data["non_field_errors"], ["Неверный номер телефона или пароль."])
+        r = self.anon.post("/api/auth/register/", {"phone": "123", "password": "x"}, format="json",
+                           HTTP_ACCEPT_LANGUAGE="ru")
+        self.assertIn("Неверный номер телефона", str(r.data["phone"]))
+        # Django/DRF o'z xabarlari ham ruscha
+        r = self.anon.get("/api/listings/99999/", HTTP_ACCEPT_LANGUAGE="ru")
+        self.assertEqual(r.data["detail"], "Страница не найдена.")  # DRF o'zining ruscha tarjimasi
+        r = self.anon.get("/api/listings/?city=abc", HTTP_ACCEPT_LANGUAGE="ru")
+        self.assertEqual(r.data["city"], ["Должно быть целым числом."])
+
+    def test_error_messages_uzbek_by_default(self):
+        r = self.anon.post("/api/auth/login/", {"phone": "901112233", "password": "x"}, format="json")
+        self.assertEqual(r.data["non_field_errors"], ["Telefon raqami yoki parol noto'g'ri."])
+
     def test_admin_stays_uzbek(self):
         admin_user = User.objects.create_superuser("admin", password=PASSWORD)
         self.client.force_login(admin_user)

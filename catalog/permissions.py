@@ -1,12 +1,13 @@
 """
 Permission — "bu foydalanuvchi bu ishni qila oladimi?" degan savolga javob.
 """
+from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 class IsBusiness(BasePermission):
     """Faqat tizimga kirgan va role=business bo'lgan foydalanuvchi."""
-    message = "Bu amal faqat biznes akkauntlar uchun."
+    message = _("Bu amal faqat biznes akkauntlar uchun.")
 
     def has_permission(self, request, view):
         user = request.user

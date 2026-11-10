@@ -17,6 +17,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.utils.translation import gettext as _
 from .models import BusinessProfile, Category, City, Favorite, Listing, ListingImage, Region, Report, Subscription, Tariff
 from .permissions import IsBusiness, IsBusinessOrReadOnly
 from .serializers import (
@@ -44,7 +45,7 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        token, _ = Token.objects.get_or_create(user=user)
+        token, _created = Token.objects.get_or_create(user=user)
         return Response({"token": token.key, "user": UserSerializer(user).data}, status=status.HTTP_201_CREATED)
 
 
@@ -58,7 +59,7 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        token, _ = Token.objects.get_or_create(user=user)
+        token, _created = Token.objects.get_or_create(user=user)
         return Response({"token": token.key, "user": UserSerializer(user).data})
 
 
@@ -116,7 +117,7 @@ class DeleteAccountView(APIView):
         serializer.is_valid(raise_exception=True)
         user = request.user
         if user.is_staff or user.is_superuser:
-            raise ValidationError({"detail": "Admin akkauntini ilova orqali o'chirib bo'lmaydi."})
+            raise ValidationError({"detail": _("Admin akkauntini ilova orqali o'chirib bo'lmaydi.")})
         # Rasm fayllarini diskdan ham o'chiramiz (bazadagi yozuvlar CASCADE bilan o'chadi)
         for img in ListingImage.objects.filter(listing__business__user=user):
             img.image.delete(save=False)
@@ -132,7 +133,7 @@ def int_param(request, name):
     if value in (None, ""):
         return None
     if not value.isdigit():
-        raise ValidationError({name: ["Butun son bo'lishi kerak."]})
+        raise ValidationError({name: [_("Butun son bo'lishi kerak.")]})
     return int(value)
 
 
@@ -274,7 +275,7 @@ class ListingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         business = getattr(self.request.user, "business", None)
         if business is None:
-            raise ValidationError({"detail": "Avval biznes profilingizni yarating: /api/business/me/"})
+            raise ValidationError({"detail": _("Avval biznes profilingizni yarating: /api/business/me/")})
         serializer.save(business=business)
 
     def perform_destroy(self, instance):
@@ -324,7 +325,7 @@ class ListingViewSet(viewsets.ModelViewSet):
         if request.method == "DELETE":
             Favorite.objects.filter(user=request.user, listing=listing).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        _, created = Favorite.objects.get_or_create(user=request.user, listing=listing)
+        _favorite, created = Favorite.objects.get_or_create(user=request.user, listing=listing)
         return Response({"is_favorite": True}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
     @extend_schema(summary="E'lon ustidan shikoyat", request=ReportSerializer, responses={201: None})
@@ -332,7 +333,7 @@ class ListingViewSet(viewsets.ModelViewSet):
     def report(self, request, pk=None):
         listing = self.get_object()  # faqat ko'rinib turgan e'lon
         if listing.business.user_id == request.user.id:
-            raise ValidationError({"detail": "O'z e'loningiz ustidan shikoyat qilib bo'lmaydi."})
+            raise ValidationError({"detail": _("O'z e'loningiz ustidan shikoyat qilib bo'lmaydi.")})
         serializer = ReportSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         # Qayta yuborilsa — yangilanadi va yana "yangi" bo'ladi (admin qaytadan ko'radi)
@@ -340,7 +341,7 @@ class ListingViewSet(viewsets.ModelViewSet):
             listing=listing, reporter=request.user,
             defaults={**serializer.validated_data, "status": Report.Status.NEW},
         )
-        return Response({"detail": "Shikoyatingiz qabul qilindi. Rahmat!"}, status=status.HTTP_201_CREATED)
+        return Response({"detail": _("Shikoyatingiz qabul qilindi. Rahmat!")}, status=status.HTTP_201_CREATED)
 
     @extend_schema(summary="E'longa rasm yuklash (multipart)",
                    request={"multipart/form-data": ListingImageSerializer},
@@ -349,7 +350,7 @@ class ListingViewSet(viewsets.ModelViewSet):
     def upload_image(self, request, pk=None):
         listing = self.get_object()
         if listing.images.count() >= MAX_IMAGES_PER_LISTING:
-            raise ValidationError({"image": f"Bitta e'longa ko'pi bilan {MAX_IMAGES_PER_LISTING} ta rasm."})
+            raise ValidationError({"image": _("Bitta e'longa ko'pi bilan %(n)s ta rasm.") % {"n": MAX_IMAGES_PER_LISTING}})
         serializer = ListingImageSerializer(data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         serializer.save(listing=listing)
@@ -379,7 +380,7 @@ class MyBusinessView(APIView):
     def get_profile(self):
         profile = BusinessProfile.objects.filter(user=self.request.user).first()
         if profile is None:
-            raise NotFound("Biznes profil hali yaratilmagan.")
+            raise NotFound(_("Biznes profil hali yaratilmagan."))
         return profile
 
     @extend_schema(tags=["business"], summary="Mening biznes profilim", responses=BusinessProfileSerializer)
@@ -390,7 +391,7 @@ class MyBusinessView(APIView):
                    responses={201: BusinessProfileSerializer})
     def post(self, request):
         if BusinessProfile.objects.filter(user=request.user).exists():
-            raise ValidationError({"detail": "Profil allaqachon mavjud. Tahrirlash uchun PATCH ishlating."})
+            raise ValidationError({"detail": _("Profil allaqachon mavjud. Tahrirlash uchun PATCH ishlating.")})
         serializer = BusinessProfileSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
@@ -425,7 +426,7 @@ class MyBusinessLogoView(APIView):
     def get_profile(self):
         profile = BusinessProfile.objects.filter(user=self.request.user).first()
         if profile is None:
-            raise NotFound("Biznes profil hali yaratilmagan.")
+            raise NotFound(_("Biznes profil hali yaratilmagan."))
         return profile
 
     @extend_schema(tags=["business"], summary="Logo yuklash (multipart)",

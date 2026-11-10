@@ -1,0 +1,68 @@
+# TOPMOST backend xabarlari — ruscha tarjima. O'zgartirgandan keyin: python manage.py compile_translations
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+
+msgid "Admin akkauntini ilova orqali o'chirib bo'lmaydi."
+msgstr "Аккаунт администратора нельзя удалить через приложение."
+
+msgid "Butun son bo'lishi kerak."
+msgstr "Должно быть целым числом."
+
+msgid "Avval biznes profilingizni yarating: /api/business/me/"
+msgstr "Сначала создайте бизнес-профиль: /api/business/me/"
+
+msgid "O'z e'loningiz ustidan shikoyat qilib bo'lmaydi."
+msgstr "Нельзя пожаловаться на собственное объявление."
+
+msgid "Shikoyatingiz qabul qilindi. Rahmat!"
+msgstr "Ваша жалоба принята. Спасибо!"
+
+msgid "Bitta e'longa ko'pi bilan %(n)s ta rasm."
+msgstr "К одному объявлению можно добавить не более %(n)s фото."
+
+msgid "Biznes profil hali yaratilmagan."
+msgstr "Бизнес-профиль ещё не создан."
+
+msgid "Profil allaqachon mavjud. Tahrirlash uchun PATCH ishlating."
+msgstr "Профиль уже существует. Для изменения используйте PATCH."
+
+msgid "Telefon raqami noto'g'ri. Masalan: +998901234567"
+msgstr "Неверный номер телефона. Например: +998901234567"
+
+msgid "Bu telefon raqami bilan allaqachon ro'yxatdan o'tilgan."
+msgstr "Этот номер телефона уже зарегистрирован."
+
+msgid "Telefon raqami yoki parol noto'g'ri."
+msgstr "Неверный номер телефона или пароль."
+
+msgid "Joriy parol noto'g'ri."
+msgstr "Текущий пароль неверный."
+
+msgid "Parol noto'g'ri."
+msgstr "Неверный пароль."
+
+msgid "Faqat 1–7 raqamlari: 1 — dushanba, 7 — yakshanba."
+msgstr "Только цифры 1–7: 1 — понедельник, 7 — воскресенье."
+
+msgid "Kenglik va uzunlik birga kiritiladi."
+msgstr "Широта и долгота указываются вместе."
+
+msgid "Koordinata noto'g'ri."
+msgstr "Неверные координаты."
+
+msgid "Ochilish va yopilish vaqti birga kiritiladi."
+msgstr "Время открытия и закрытия указываются вместе."
+
+msgid "Yopilish vaqti ochilishdan farq qilishi kerak (24 soat uchun «24/7» ni belgilang)."
+msgstr "Время закрытия должно отличаться от открытия (для круглосуточной работы отметьте «24/7»)."
+
+msgid "Rasm juda katta: ko'pi bilan %(mb)s MB."
+msgstr "Фото слишком большое: не более %(mb)s МБ."
+
+msgid "Bu narx turi uchun narxni kiriting."
+msgstr "Для этого типа цены укажите цену."
+
+msgid "Bu amal faqat biznes akkauntlar uchun."
+msgstr "Это действие доступно только бизнес-аккаунтам."

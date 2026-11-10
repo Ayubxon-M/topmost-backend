@@ -6,8 +6,26 @@ Server **Windows** yoki **Linux** bo'lishi mumkin, har ikkalasi uchun buyruqlar 
 Qisqacha sxema:
 
 ```
-Telefon (Flutter ilova)  →  Internet  →  ofis routeri  →  server: python serve.py (port 8000)  →  Django
+Telefon (Flutter ilova)  →  Internet (https)  →  Cloudflare Tunnel yoki router  →  server: python serve.py (port 8000)  →  Django
 ```
+
+## ✅ O'rnatish kuni uchun reja (ustoz bilan, ~2 soat)
+
+| # | Ish | Bo'lim |
+|---|---|---|
+| 1 | Server qaysi tizimda: Windows yoki Linux? Python 3.12+ bormi? | 2 |
+| 2 | Kodni serverga ko'chirish (`git clone`) | 1 |
+| 3 | Kutubxonalarni o'rnatish | 2 |
+| 4 | `.env` ni to'ldirish (kalit, domen, aloqa) | 3 |
+| 5 | Bazani tayyorlash + boshlang'ich ma'lumotlar | 4 |
+| 6 | `python serve.py` — ishga tushirib sinash | 5 |
+| 7 | Avtomatik ishga tushishni sozlash (server qayta yonganda) | 6 |
+| 8 | **Internetdan kirish + HTTPS** (Cloudflare Tunnel yoki router + nginx) | 7 |
+| 9 | Kunlik backup | 8 |
+| 10 | **`python manage.py check_server`** — hammasi ✅ bo'lishi kerak | 5.1 |
+| 11 | Ilovani server manzili bilan yig'ish (RELEASE.md) | 10 |
+
+**Ustozdan oldindan so'rang:** ofisda statik IP bormi? domen bormi (masalan `topmost.uz`)? Cloudflare akkaunti bormi?
 
 ---
 
@@ -90,6 +108,16 @@ ochilsa, hammasi joyida. Ofisdagi boshqa kompyuter yoki telefondan oching:
 
 > `python manage.py runserver` faqat dasturlash uchun, serverda doim `python serve.py` ishlating.
 
+## 5.1. Avtomatik tekshiruv
+
+```bash
+python manage.py check_server
+```
+
+Har bir band yonida ✅ (joyida), ⚠️ (tavsiya) yoki ❌ (tuzatish shart) chiqadi, ❌ ostida esa nima qilish
+kerakligi yoziladi. **Hamma ❌ yo'qolmaguncha ilovani foydalanuvchilarga chiqarmang.**
+HTTPS ulangandan keyin (7-bo'lim) yana bir marta ishga tushiring.
+
 ## 6. Server qayta yonganda backend o'zi ishga tushishi
 
 **Windows** (Task Scheduler, ya'ni "Планировщик заданий"):
@@ -133,6 +161,36 @@ Shuning uchun serverga internetdan kirish kerak. Ustozingizga quyidagi savollarn
    - **Cloudflare Tunnel**: statik IP bo'lmasa ham ishlaydi, router sozlash shart emas,
      HTTPS'ni o'zi beradi.
 4. HTTPS ishlagandan keyin `.env` ichida `HTTPS=True` qiling.
+
+### 7.1. Cloudflare Tunnel — qadamma-qadam (statik IP shart emas, eng oson yo'l)
+
+Tunnel server ichidan Cloudflare'ga **o'zi** ulanadi. Shuning uchun routerda port ochish shart emas,
+HTTPS sertifikati esa bepul va avtomatik bo'ladi.
+
+1. **Domen kerak** (masalan `topmost.uz`, yiliga ~10–15$). Domenni https://dash.cloudflare.com ga
+   qo'shing (bepul tarif): Cloudflare 2 ta NS manzil beradi, ularni domen sotgan saytda yozasiz.
+2. Cloudflare'da: **Zero Trust → Networks → Tunnels → Create a tunnel** → turi *Cloudflared* →
+   nomi `topmost`.
+3. Sahifada server tizimiga mos o'rnatish buyrug'i chiqadi (Windows yoki Linux). Uni serverda
+   **administrator** sifatida bajaring. Tunnel xizmat (service) bo'lib o'rnatiladi va server qayta
+   yonganda o'zi ishga tushadi.
+4. **Public Hostname** qo'shing:
+   - Subdomain: `api`, Domain: `topmost.uz` → manzil `https://api.topmost.uz`
+   - Service: `HTTP` → `localhost:8000`
+5. `.env` ni yangilang va backend'ni qayta yoqing:
+   ```
+   ALLOWED_HOSTS=api.topmost.uz
+   CSRF_TRUSTED_ORIGINS=https://api.topmost.uz
+   HTTPS=True
+   TRUSTED_PROXY=127.0.0.1
+   SERVE_MEDIA=True
+   ```
+6. Telefonda (Wi-Fi'ni o'chirib, mobil internetda) brauzerda oching:
+   `https://api.topmost.uz/api/categories/` — kategoriyalar ro'yxati chiqsa, hammasi ishlayapti.
+7. `python manage.py check_server` — hammasi ✅.
+
+> Telefondan ochilmasa: Cloudflare'da tunnel holati **HEALTHY** ekanini va server'da
+> `python serve.py` ishlab turganini tekshiring.
 
 Telefon ilovalari (ayniqsa iOS) oddiy `http://` manzilga ulanishni cheklaydi. Shuning uchun
 ilovani foydalanuvchilarga chiqarishdan oldin HTTPS albatta ulangan bo'lishi kerak.
@@ -192,3 +250,24 @@ python manage.py collectstatic --noinput
 ```
 Keyin backend'ni qayta ishga tushiring: Windows'da Task Scheduler'da *End* → *Run*,
 Linux'da `sudo systemctl restart topmost`.
+
+> Tarjima fayli (`locale/*/django.po`) o'zgargan bo'lsa: `python manage.py compile_translations`.
+> Yangi kategoriya/shaharlar qo'shilgan bo'lsa: `python manage.py load_initial_data` (bor narsani takrorlamaydi).
+
+## 10. Ilovani server manziliga ulash
+
+Server `https://` manzil bilan ishlagach, ilova shu manzil bilan yig'iladi (`topmost-app/RELEASE.md`):
+
+```powershell
+flutter build appbundle --release --dart-define=BASE_URL=https://api.topmost.uz
+```
+
+Sinash uchun telefonga to'g'ridan-to'g'ri o'rnatish (USB'siz ishlaydi):
+```powershell
+flutter run --release --dart-define=BASE_URL=https://api.topmost.uz
+```
+
+Google Play'ga kerak bo'ladigan havolalar:
+- Maxfiylik siyosati: `https://api.topmost.uz/privacy/`
+- Akkauntni o'chirish: `https://api.topmost.uz/privacy/#delete`
+- Foydalanish shartlari: `https://api.topmost.uz/terms/`

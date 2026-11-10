@@ -104,6 +104,7 @@ Bitta maydonga tegishli bo'lmagan xatolar `non_field_errors` yoki `detail` ichid
 | GET | `/api/listings/mine/` | business | Mening e'lonlarim (yashirinlari ham) |
 | GET | `/api/listings/favorites/` | token | Sevimli e'lonlarim ❤️ |
 | POST / DELETE | `/api/listings/{id}/favorite/` | token | Sevimlilarga qo'shish / olib tashlash |
+| POST | `/api/listings/{id}/report/` | token | E'lon ustidan shikoyat |
 | GET | `/api/businesses/?category=&city=` | hamma | Xarita: koordinatasi bor bizneslar |
 | GET | `/api/businesses/{id}/` | hamma | Biznes sahifasi |
 | POST | `/api/listings/` | business | E'lon qo'shish |
@@ -348,6 +349,19 @@ Bitta e'longa ko'pi bilan **10 ta** rasm. **201**:
 - `GET /api/listings/favorites/` — saqlanganlar, oxirgi saqlangani birinchi. Sahifalangan, `results` — oddiy e'lon obyektlari.
 
 Yashirilgan yoki bloklangan e'lon ro'yxatdan avtomatik tushib qoladi. Mehmon — `401` (kirish sahifasiga yuboring).
+
+### POST `/api/listings/{id}/report/` — shikoyat (token kerak)
+```json
+{ "reason": "fraud", "comment": "Pul oldi, kelmadi" }
+```
+`reason`: `fraud` (firibgarlik), `inappropriate` (nomaqbul), `spam`, `wrong_info` (noto'g'ri ma'lumot),
+`prohibited` (taqiqlangan), `other`. `comment` — ixtiyoriy. **201** `{"detail": "Shikoyatingiz qabul qilindi. Rahmat!"}`.
+Qayta yuborilsa — eski shikoyat yangilanadi. O'z e'loni ustidan — `400`. Admin panelda ko'rib chiqiladi.
+
+> App Store va Google Play: foydalanuvchilar e'lon joylaydigan ilovada shikoyat tugmasi **majburiy**.
+> Foydalanish shartlari: `https://<server>/terms/` — ro'yxatdan o'tishda rozilik so'rang.
+
+Rasm (e'lon rasmi va logo) ko'pi bilan **8 MB**, aks holda `400`.
 
 ---
 

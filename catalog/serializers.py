@@ -217,8 +217,17 @@ class BusinessProfileSerializer(serializers.ModelSerializer):
         return value.strip().lstrip("@")
 
 
+MAX_IMAGE_MB = 8  # bitta rasm ko'pi bilan (ilova rasmlarni ~300 KB gacha kichraytiradi)
+
+
+def validate_image_size(image):
+    if image.size > MAX_IMAGE_MB * 1024 * 1024:
+        raise serializers.ValidationError(f"Rasm juda katta: ko'pi bilan {MAX_IMAGE_MB} MB.")
+    return image
+
+
 class BusinessLogoSerializer(serializers.ModelSerializer):
-    logo = serializers.ImageField()
+    logo = serializers.ImageField(validators=[validate_image_size])
 
     class Meta:
         model = BusinessProfile
@@ -234,6 +243,8 @@ class ReportSerializer(serializers.ModelSerializer):
 
 
 class ListingImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(validators=[validate_image_size])
+
     class Meta:
         model = ListingImage
         fields = ["id", "image", "order"]

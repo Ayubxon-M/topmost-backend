@@ -742,6 +742,13 @@ class ListingOwnerTests(BaseAPITest):
         r = self.a.post(f"/api/listings/{self.listing.pk}/images/", {"image": bad}, format="multipart")
         self.assertEqual(r.status_code, 400)
 
+    def test_too_large_image_rejected(self):
+        from unittest import mock
+        with mock.patch("catalog.serializers.MAX_IMAGE_MB", 0):  # 0 MB — har qanday rasm "katta"
+            r = self.a.post(f"/api/listings/{self.listing.pk}/images/", {"image": make_image()}, format="multipart")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("juda katta", str(r.data["image"]))
+
     def test_image_limit(self):
         url = f"/api/listings/{self.listing.pk}/images/"
         for _ in range(10):

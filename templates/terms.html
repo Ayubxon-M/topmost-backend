@@ -1,0 +1,52 @@
+{% extends "legal_base.html" %}
+{% block title %}Foydalanish shartlari{% endblock %}
+{% block content %}
+  <h1>TOPMOST — Foydalanish shartlari</h1>
+  <p class="muted">Oxirgi yangilanish: {{ updated }}</p>
+
+  <p>TOPMOST ilovasidan foydalanib, siz quyidagi shartlarga rozilik bildirasiz. Rozi bo'lmasangiz,
+    iltimos, ilovadan foydalanmang.</p>
+
+  <h2>1. Ilova nima</h2>
+  <p>TOPMOST — ustalar, do'konlar, kafelar va boshqa mahalliy bizneslar e'lonlarini joylash va topish
+    platformasi. Biz mijoz bilan biznes o'rtasida vositachi emasmiz: kelishuv, to'lov va xizmat sifati
+    uchun e'lon egasi javob beradi.</p>
+
+  <h2>2. Akkaunt</h2>
+  <ul>
+    <li>Ro'yxatdan o'tishda o'zingizga tegishli telefon raqamini kiriting.</li>
+    <li>Parolingizni hech kimga bermang — akkauntingizdagi harakatlar uchun o'zingiz javobgarsiz.</li>
+    <li>Ilova 16 yoshdan katta foydalanuvchilar uchun.</li>
+  </ul>
+
+  <h2>3. Joylashtirish taqiqlangan narsalar</h2>
+  <div class="box">
+    <p><b>Nomaqbul kontentga mutlaqo yo'l qo'yilmaydi.</b> Quyidagilar taqiqlanadi:</p>
+    <ul>
+      <li>firibgarlik, aldov, soxta narx yoki boshqaning nomidan e'lon;</li>
+      <li>haqorat, tahdid, kamsitish, zo'ravonlik, 18+ kontent;</li>
+      <li>O'zbekiston qonunlari bilan taqiqlangan mahsulot va xizmatlar (giyohvand moddalar, qurol va h.k.);</li>
+      <li>spam, bir xil e'lonni qayta-qayta joylash;</li>
+      <li>boshqalarning rasmlari, belgilari yoki ma'lumotlarini ruxsatsiz ishlatish.</li>
+    </ul>
+  </div>
+
+  <h2>4. Shikoyat va moderatsiya</h2>
+  <p>Har bir e'londa <b>«Shikoyat qilish»</b> tugmasi bor. Shikoyatlarni admin ko'rib chiqadi va
+    qoidani buzgan e'lonni 24 soat ichida bloklaydi. Qoidani qayta-qayta buzgan foydalanuvchining
+    akkaunti ogohlantirishsiz bloklanadi.</p>
+
+  <h2>5. Pullik tariflar</h2>
+  <p>Biznes pullik tarif orqali e'lonlarini ro'yxatda yuqoriroq ko'rsatishi mumkin. Tarif narxi va
+    muddati ilovada ko'rsatiladi. Qoidani buzgani uchun bloklangan e'lon uchun to'lov qaytarilmaydi.</p>
+
+  <h2>6. Javobgarlik</h2>
+  <p>E'londagi ma'lumot (narx, sifat, manzil) uchun e'lon egasi javob beradi. Biz ma'lumotlar to'g'riligini
+    kafolatlamaymiz, lekin shikoyatlar asosida chora ko'ramiz. Oldindan to'lov qilishdan oldin ehtiyot bo'ling.</p>
+
+  <h2>7. O'zgarishlar</h2>
+  <p>Shartlar o'zgarsa, yangi matn shu sahifada e'lon qilinadi va yuqoridagi sana yangilanadi.</p>
+
+  {% if contact %}<h2>8. Aloqa</h2>
+  <p>Savollar bo'lsa: {{ contact }}</p>{% endif %}
+{% endblock %}

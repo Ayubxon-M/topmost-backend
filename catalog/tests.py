@@ -890,6 +890,13 @@ class PrivacyPageTests(TestCase):
         self.assertContains(r, "Maxfiylik siyosati")
         self.assertContains(r, 'id="delete"')  # Google Play: akkauntni o'chirish havolasi
 
+    def test_terms_page_public(self):
+        r = self.client.get("/terms/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Foydalanish shartlari")
+        self.assertContains(r, "Shikoyat qilish")
+        self.assertContains(self.client.get("/privacy/"), 'href="/terms/"')  # sahifalar bir-biriga bog'langan
+
     @override_settings(PRIVACY_CONTACT="Telegram @topmost_admin")
     def test_privacy_contact_shown(self):
         self.assertContains(self.client.get("/privacy/"), "@topmost_admin")

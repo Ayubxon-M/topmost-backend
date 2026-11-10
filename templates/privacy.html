@@ -1,21 +1,6 @@
-<!doctype html>
-<html lang="uz">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Maxfiylik siyosati — TOPMOST</title>
-  <style>
-    body { margin: 0; background: #f5f7f8; color: #1f2933; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
-    h1 { color: #0f766e; margin-bottom: 4px; }
-    h2 { margin-top: 32px; font-size: 1.2rem; }
-    .muted { color: #6b7280; font-size: .9rem; }
-    .box { background: #fff; border-left: 4px solid #0f766e; padding: 12px 16px; border-radius: 6px; }
-    li { margin: 4px 0; }
-  </style>
-</head>
-<body>
-<main>
+{% extends "legal_base.html" %}
+{% block title %}Maxfiylik siyosati{% endblock %}
+{% block content %}
   <h1>TOPMOST — Maxfiylik siyosati</h1>
   <p class="muted">Oxirgi yangilanish: {{ updated }}</p>
 
@@ -72,6 +57,4 @@
 
   {% if contact %}<h2>8. Aloqa</h2>
   <p>Savollar bo'lsa: {{ contact }}</p>{% endif %}
-</main>
-</body>
-</html>
+{% endblock %}

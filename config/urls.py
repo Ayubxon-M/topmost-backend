@@ -13,8 +13,17 @@ def privacy(request):
     })
 
 
+def terms(request):
+    """Foydalanish shartlari. Ro'yxatdan o'tishda foydalanuvchi shunga rozilik beradi (App Store talabi)."""
+    return render(request, 'terms.html', {
+        'updated': settings.PRIVACY_UPDATED,
+        'contact': settings.PRIVACY_CONTACT,
+    })
+
+
 urlpatterns = [
     path('privacy/', privacy, name='privacy'),
+    path('terms/', terms, name='terms'),
     path('admin/', admin.site.urls),
     # API hujjati: /api/docs/ — brauzerda ochiladigan Swagger sahifasi
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

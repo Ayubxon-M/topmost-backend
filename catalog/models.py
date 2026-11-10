@@ -30,6 +30,7 @@ class User(AbstractUser):
 class Region(models.Model):
     """Viloyat."""
     name = models.CharField("Viloyat nomi", max_length=100, unique=True)
+    name_ru = models.CharField("Nomi (ruscha)", max_length=100, blank=True, help_text="Bo'sh bo'lsa — o'zbekchasi ko'rsatiladi")
 
     class Meta:
         verbose_name = "Viloyat"
@@ -44,6 +45,7 @@ class City(models.Model):
     """Shahar yoki tuman."""
     region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name="cities", verbose_name="Viloyat")
     name = models.CharField("Shahar / tuman nomi", max_length=100)
+    name_ru = models.CharField("Nomi (ruscha)", max_length=100, blank=True, help_text="Bo'sh bo'lsa — o'zbekchasi ko'rsatiladi")
 
     class Meta:
         verbose_name = "Shahar / tuman"
@@ -102,6 +104,7 @@ class Category(models.Model):
         PETS = "pets", "🐾 Hayvonlar"
 
     name = models.CharField("Nomi", max_length=100)
+    name_ru = models.CharField("Nomi (ruscha)", max_length=100, blank=True, help_text="Bo'sh bo'lsa — o'zbekchasi ko'rsatiladi")
     parent = models.ForeignKey(
         "self", on_delete=models.PROTECT, null=True, blank=True, related_name="children",
         verbose_name="Bo'lim", help_text="Bo'sh qoldirilsa — bu kategoriya o'zi bo'lim bo'ladi (masalan «Ustalar»)",

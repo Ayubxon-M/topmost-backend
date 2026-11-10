@@ -80,6 +80,8 @@ MIDDLEWARE = [
     # DEBUG=False bo'lganda admin panel CSS/JS fayllarini beradi
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # /api/ uchun til: Accept-Language (uz yoki ru). Admin panel doim o'zbekcha. catalog/middleware.py
+    'catalog.middleware.ApiLanguageMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -147,6 +149,12 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
 LANGUAGE_CODE = 'uz'
+
+# Ilova qo'llaydigan tillar. Ruscha tarjimalar: locale/ru/LC_MESSAGES/django.po
+LANGUAGES = [
+    ('uz', "O'zbekcha"),
+    ('ru', 'Русский'),
+]
 
 # Django tarjimasida yo'q matnlar uchun o'zimizning tarjimalar (locale/uz/LC_MESSAGES/django.po)
 LOCALE_PATHS = [BASE_DIR / 'locale']

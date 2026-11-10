@@ -6,6 +6,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
+from django.utils.translation import get_language
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -106,19 +107,32 @@ class DeleteAccountSerializer(serializers.Serializer):
 
 # ---------- Ma'lumotnomalar ----------
 
-class RegionSerializer(serializers.ModelSerializer):
+class LocalizedNameMixin:
+    """
+    "name" — so'rov tiliga qarab: ruscha so'ralsa (Accept-Language: ru) va name_ru to'ldirilgan bo'lsa —
+    ruscha nom, aks holda o'zbekcha. Ilova uchun maydon nomi o'zgarmaydi — doim "name".
+    """
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if get_language() == "ru" and getattr(instance, "name_ru", ""):
+            data["name"] = instance.name_ru
+        return data
+
+
+class RegionSerializer(LocalizedNameMixin, serializers.ModelSerializer):
     class Meta:
         model = Region
         fields = ["id", "name"]
 
 
-class CitySerializer(serializers.ModelSerializer):
+class CitySerializer(LocalizedNameMixin, serializers.ModelSerializer):
     class Meta:
         model = City
         fields = ["id", "name", "region"]
 
 
-class CategorySerializer(serializers.ModelSerializer):
+class CategorySerializer(LocalizedNameMixin, serializers.ModelSerializer):
     class Meta:
         model = Category
         # parent: null — bo'lim; aks holda bo'lim id'si. icon — ilovadagi belgi nomi.

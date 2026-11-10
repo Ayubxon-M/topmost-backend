@@ -322,6 +322,38 @@ class BusinessPageTests(BaseAPITest):
         User.objects.filter(pk=self.user.pk).update(is_active=False)
         self.assertEqual(self.anon.get(f"/api/businesses/{self.biz.pk}/").status_code, 404)
 
+class LanguageTests(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        Category.objects.filter(pk=self.usta.pk).update(name_ru="Мастера")
+        City.objects.filter(pk=self.qoqon.pk).update(name_ru="Коканд")
+
+    def names(self, path, lang=None):
+        headers = {"HTTP_ACCEPT_LANGUAGE": lang} if lang else {}
+        return {x["name"] for x in self.anon.get(path, **headers).data}
+
+    def test_russian_names(self):
+        self.assertIn("Мастера", self.names("/api/categories/", "ru-RU,ru;q=0.9"))
+        self.assertIn("Kafelar", self.names("/api/categories/", "ru"))  # ruscha yo'q — o'zbekchasi
+        self.assertIn("Коканд", self.names("/api/cities/", "ru"))
+
+    def test_uzbek_by_default_and_unknown_language(self):
+        self.assertIn("Ustalar", self.names("/api/categories/"))
+        self.assertIn("Ustalar", self.names("/api/categories/", "en-US"))
+
+    def test_nested_names_in_listing(self):
+        _, biz = self.make_business("+998901000001")
+        Listing.objects.create(business=biz, title="E'lon")
+        b = self.anon.get("/api/listings/", HTTP_ACCEPT_LANGUAGE="ru").data["results"][0]["business"]
+        self.assertEqual((b["city"]["name"], b["category"]["name"]), ("Коканд", "Мастера"))
+
+    def test_admin_stays_uzbek(self):
+        admin_user = User.objects.create_superuser("admin", password=PASSWORD)
+        self.client.force_login(admin_user)
+        r = self.client.get("/admin/", HTTP_ACCEPT_LANGUAGE="ru")
+        self.assertContains(r, "Boshqaruv paneli")
+        self.assertEqual(r.headers["Content-Language"], "uz")
+
 class ViewsCountTests(BaseAPITest):
     def setUp(self):
         super().setUp()
@@ -885,7 +917,8 @@ class LoadInitialDataTests(TestCase):
         self.assertEqual(City.objects.count(), 19)
         self.assertEqual(Category.objects.filter(parent=None).count(), 9)  # bo'limlar
         santexnik = Category.objects.get(name="Santexnik")
-        self.assertEqual((santexnik.parent.name, santexnik.icon), ("Ustalar", "plumbing"))
+        self.assertEqual((santexnik.parent.name, santexnik.icon, santexnik.name_ru), ("Ustalar", "plumbing", "Сантехник"))
+        self.assertEqual(City.objects.get(name="Qo'qon").name_ru, "Коканд")
         self.assertTrue(City.objects.filter(name="Qo'qon", region__name="Farg'ona viloyati").exists())
         call_command("load_initial_data", stdout=StringIO())  # ikkinchi marta — takrorlanmaydi
         self.assertEqual(City.objects.count(), 19)

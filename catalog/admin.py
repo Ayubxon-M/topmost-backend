@@ -403,7 +403,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(Region)
 class RegionAdmin(admin.ModelAdmin):
-    list_display = ("name", "cities_count")
+    list_display = ("name", "name_ru", "cities_count")
     search_fields = ("name",)
 
     def get_queryset(self, request):
@@ -416,7 +416,7 @@ class RegionAdmin(admin.ModelAdmin):
 
 @admin.register(City)
 class CityAdmin(admin.ModelAdmin):
-    list_display = ("name", "region", "business_count")
+    list_display = ("name", "name_ru", "region", "business_count")
     list_filter = ("region",)
     search_fields = ("name",)
     list_select_related = ("region",)
@@ -446,12 +446,12 @@ class CategoryLevelFilter(admin.SimpleListFilter):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("tree_name", "icon", "order", "business_count")
-    list_editable = ("icon", "order")
+    list_display = ("tree_name", "name_ru", "icon", "order", "business_count")
+    list_editable = ("name_ru", "icon", "order")
     list_filter = (CategoryLevelFilter, "parent")
-    search_fields = ("name", "parent__name")
+    search_fields = ("name", "name_ru", "parent__name")
     list_select_related = ("parent",)
-    fields = ("name", "parent", "icon", "order")
+    fields = ("name", "name_ru", "parent", "icon", "order")
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_businesses=Count("businessprofile"))

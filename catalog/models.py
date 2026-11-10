@@ -202,6 +202,8 @@ class Listing(models.Model):
                                         help_text="Faqat «Aniq narx» va «Narxdan boshlab» uchun")
     is_active = models.BooleanField("Faol", default=True, help_text="Egasi e'lonni yashirishi mumkin")
     is_blocked = models.BooleanField("Bloklangan", default=False, help_text="Admin tomonidan bloklangan")
+    # Necha marta ko'rilgan: bitta odam sutkada bir marta sanaladi, egasining o'zi sanalmaydi
+    views_count = models.PositiveIntegerField("Ko'rishlar", default=0, editable=False)
     # Qidiruv uchun: sarlavha + izohning kichik harfli, apostroflari birlashtirilgan nusxasi.
     search_text = models.TextField(editable=False, blank=True)
     created_at = models.DateTimeField("Yaratilgan", auto_now_add=True)

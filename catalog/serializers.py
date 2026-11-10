@@ -255,15 +255,20 @@ class ListingSerializer(serializers.ModelSerializer):
     images = ListingImageSerializer(many=True, read_only=True)
     # Tizimga kirgan foydalanuvchi bu e'lonni ❤️ saqlaganmi (mehmonga doim false)
     is_favorite = serializers.SerializerMethodField()
+    # Faqat /api/listings/mine/ da (biznes o'z e'lonini nechta odam saqlaganini ko'radi), boshqa joyda null
+    favorites_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Listing
         fields = [
             "id", "title", "description", "price_type", "price", "is_active", "is_blocked",
-            "created_at", "updated_at", "business", "images", "is_favorite",
+            "created_at", "updated_at", "business", "images", "is_favorite", "views_count", "favorites_count",
         ]
         # is_blocked'ni faqat admin o'zgartiradi
-        read_only_fields = ["is_blocked", "created_at", "updated_at"]
+        read_only_fields = ["is_blocked", "created_at", "updated_at", "views_count"]
+
+    def get_favorites_count(self, listing) -> int | None:
+        return getattr(listing, "favorites_total", None)
 
     def get_is_favorite(self, listing) -> bool:
         annotated = getattr(listing, "favorited", None)  # ro'yxatda bitta so'rov bilan hisoblanadi

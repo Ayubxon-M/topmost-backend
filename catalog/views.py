@@ -1,7 +1,8 @@
 """
 View — so'rov (request) kelganda nima qilishni hal qiladigan qism.
 """
-from django.db.models import Count, Exists, IntegerField, OuterRef, Q, Subquery, Value
+from django.core.cache import cache
+from django.db.models import Count, Exists, F, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -28,6 +29,7 @@ from .utils import normalize_text
 
 MAX_IMAGES_PER_LISTING = 10
 NO_SUBSCRIPTION_PRIORITY = 99  # obunasi yo'q bizneslar ro'yxat oxirida
+VIEW_DEDUP_SECONDS = 24 * 60 * 60  # bitta odamning ko'rishi sutkada bir marta sanaladi
 
 
 # ---------- Autentifikatsiya ----------
@@ -280,10 +282,28 @@ class ListingViewSet(viewsets.ModelViewSet):
             img.image.delete(save=False)  # rasm faylini diskdan ham o'chiramiz
         instance.delete()
 
-    @extend_schema(summary="Mening e'lonlarim (biznes, yashirinlari ham)")
+    def retrieve(self, request, *args, **kwargs):
+        listing = self.get_object()
+        self.count_view(request, listing)
+        return Response(self.get_serializer(listing).data)
+
+    @staticmethod
+    def count_view(request, listing):
+        """Ko'rishni sanaydi: bitta odam (yoki IP) sutkada bir marta, egasining o'zi — hech qachon."""
+        user = request.user
+        if user.is_authenticated and listing.business.user_id == user.id:
+            return
+        who = f"u{user.id}" if user.is_authenticated else f"ip{request.META.get('REMOTE_ADDR', '')}"
+        key = f"view:{listing.pk}:{who}"
+        if cache.add(key, 1, timeout=VIEW_DEDUP_SECONDS):  # add — faqat kalit yo'q bo'lsa yozadi
+            Listing.objects.filter(pk=listing.pk).update(views_count=F("views_count") + 1)
+            listing.views_count += 1
+
+    @extend_schema(summary="Mening e'lonlarim (biznes, yashirinlari ham) — ko'rishlar va ❤️ soni bilan")
     @action(detail=False, methods=["get"], permission_classes=[IsBusiness])
     def mine(self, request):
-        page = self.paginate_queryset(self.get_queryset())
+        qs = self.get_queryset().annotate(favorites_total=Count("favorites", distinct=True))
+        page = self.paginate_queryset(qs)
         return self.get_paginated_response(self.get_serializer(page, many=True).data)
 
     @extend_schema(summary="Sevimli e'lonlarim (❤️)")

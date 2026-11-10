@@ -204,7 +204,7 @@ class ListingStatusFilter(admin.SimpleListFilter):
 
 @admin.register(Listing)
 class ListingAdmin(admin.ModelAdmin):
-    list_display = ("photo", "title", "business", "price_display", "status_badge", "favorites_count", "reports_count", "created_at")
+    list_display = ("photo", "title", "business", "price_display", "status_badge", "views_count", "favorites_count", "reports_count", "created_at")
     list_display_links = ("photo", "title")
     list_filter = (ListingStatusFilter, "price_type", "is_active", "is_blocked", "business__city", "business__category")
     search_fields = ("title", "description", "business__name")
@@ -212,7 +212,7 @@ class ListingAdmin(admin.ModelAdmin):
     autocomplete_fields = ("business",)
     date_hierarchy = "created_at"
     list_per_page = 25
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = ("views_count", "created_at", "updated_at")
     inlines = [ListingImageInline]
     actions = ["block_listings", "unblock_listings"]
     fieldsets = (
@@ -222,7 +222,7 @@ class ListingAdmin(admin.ModelAdmin):
             "description": "«Faol» — egasi boshqaradi. «Bloklangan» — faqat admin. "
                            "Ilovada faqat faol va bloklanmagan e'lonlar ko'rinadi.",
         }),
-        ("Sanalar", {"classes": ("collapse",), "fields": ("created_at", "updated_at")}),
+        ("Statistika va sanalar", {"classes": ("collapse",), "fields": ("views_count", "created_at", "updated_at")}),
     )
 
     def get_queryset(self, request):

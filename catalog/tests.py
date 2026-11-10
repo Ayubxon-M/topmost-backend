@@ -322,6 +322,44 @@ class BusinessPageTests(BaseAPITest):
         User.objects.filter(pk=self.user.pk).update(is_active=False)
         self.assertEqual(self.anon.get(f"/api/businesses/{self.biz.pk}/").status_code, 404)
 
+class ViewsCountTests(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.owner, self.biz = self.make_business("+998901000001")
+        self.listing = Listing.objects.create(business=self.biz, title="E'lon")
+        self.url = f"/api/listings/{self.listing.pk}/"
+
+    def views(self):
+        return Listing.objects.get(pk=self.listing.pk).views_count
+
+    def test_one_view_per_person_per_day(self):
+        u1 = self.client_for(User.objects.create_user("+998901000008", password=PASSWORD))
+        u2 = self.client_for(User.objects.create_user("+998901000009", password=PASSWORD))
+        self.assertEqual(u1.get(self.url).data["views_count"], 1)
+        u1.get(self.url)  # takroriy — sanalmaydi
+        u2.get(self.url)
+        self.anon.get(self.url)  # mehmon — IP bo'yicha
+        self.anon.get(self.url)
+        self.assertEqual(self.views(), 3)
+
+    def test_owner_not_counted_and_list_does_not_count(self):
+        self.client_for(self.owner).get(self.url)
+        self.anon.get("/api/listings/")
+        self.assertEqual(self.views(), 0)
+
+    def test_mine_shows_favorites_count(self):
+        from .models import Favorite
+        for phone in ("+998901000008", "+998901000009"):
+            Favorite.objects.create(user=User.objects.create_user(phone, password=PASSWORD), listing=self.listing)
+        item = self.client_for(self.owner).get("/api/listings/mine/").data["results"][0]
+        self.assertEqual(item["favorites_count"], 2)
+        self.assertIsNone(self.anon.get(self.url).data["favorites_count"])  # boshqalarga ko'rinmaydi
+
+    def test_views_count_not_writable(self):
+        r = self.client_for(self.owner).patch(self.url, {"views_count": 9999}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.views(), 0)
+
 class ReportTests(BaseAPITest):
     def setUp(self):
         super().setUp()

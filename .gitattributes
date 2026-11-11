@@ -1,0 +1,2 @@
+# Linux skriptlari doim LF qator oxiri bilan (CRLF bilan bash ishlamaydi)
+*.sh text eol=lf

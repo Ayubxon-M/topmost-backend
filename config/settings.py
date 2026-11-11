@@ -29,7 +29,7 @@ def load_env_file(path):
     """KALIT=qiymat qatorlarini o'qib, os.environ ga qo'shadi (# — izoh)."""
     if not path.exists():
         return
-    for line in path.read_text(encoding='utf-8').splitlines():
+    for line in path.read_text(encoding='utf-8-sig')  # utf-8-sig: Windows qo'ygan BOM belgisini olib tashlaydi.splitlines():
         line = line.strip()
         if not line or line.startswith('#') or '=' not in line:
             continue

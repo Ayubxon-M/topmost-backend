@@ -27,6 +27,26 @@ Telefon (Flutter ilova)  →  Internet (https)  →  Cloudflare Tunnel yoki rout
 
 **Ustozdan oldindan so'rang:** ofisda statik IP bormi? domen bormi (masalan `topmost.uz`)? Cloudflare akkaunti bormi?
 
+### ⚡ Tez yo'l: 2–5-qadamlarni bitta buyruq bajaradi
+
+Kodni serverga ko'chirgach (1-qadam), `topmost-backend` papkasida:
+
+**Windows** (PowerShell):
+```powershell
+powershell -ExecutionPolicy Bypass -File setup_server.ps1
+```
+**Linux:**
+```bash
+bash setup_server.sh
+```
+
+Skript: Python'ni tekshiradi → kutubxonalarni o'rnatadi → `.env` yaratadi (maxfiy kalitni o'zi yasaydi,
+sizdan faqat **domen** va **aloqa**ni so'raydi) → baza, admin panel fayllari, tarjimalar, shahar va
+kategoriyalar → admin login/parol → `check_server` natijasi. Qayta ishga tushirsa bo'ladi — bor narsani buzmaydi.
+
+Skript tugagach — 6-qadam (avtomatik ishga tushish) va 7.1 (Cloudflare Tunnel) qoladi.
+Pastdagi 2–5-qadamlar — skript nima qilayotganini tushunish yoki qo'lda bajarish uchun.
+
 ---
 
 ## 1. Kodni serverga ko'chirish
